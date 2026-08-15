@@ -134,6 +134,15 @@
 
     let watchID = null;
 
+    /*
+     * Controls whether the map automatically
+     * centers on the GPS position.
+     *
+     * We only do this once when GPS starts.
+     */
+
+    let gpsHasCentered = false;
+
 
     /*
      * =========================================================
@@ -141,9 +150,7 @@
      * =========================================================
      *
      * Official Michigan Land Cover Circa 1800
-     * FeatureServer maintained through ArcGIS.
-     *
-     * Layer 0 = Vegetation of Michigan circa 1800s
+     * ArcGIS FeatureServer
      */
 
     const vegetationURL =
@@ -156,7 +163,8 @@
 
 
     /*
-     * Prevent excessive requests while driving.
+     * Prevent excessive vegetation requests
+     * while driving.
      */
 
     let lastVegetationLatitude = null;
@@ -179,6 +187,16 @@
 
         return;
       }
+
+
+      /*
+       * Reset the automatic-centering flag.
+       *
+       * This means pressing Start GPS again
+       * will center the map on your current position.
+       */
+
+      gpsHasCentered = false;
 
 
       document.getElementById("status").innerHTML =
@@ -303,15 +321,29 @@
              * -------------------------------------------------
              * CENTER MAP
              * -------------------------------------------------
+             *
+             * IMPORTANT:
+             *
+             * Only center the map the FIRST time
+             * GPS provides a position.
+             *
+             * This allows the user to zoom and pan
+             * freely afterward.
              */
 
-            map.setView(
+            if (!gpsHasCentered) {
 
-              [latitude, longitude],
+              map.setView(
 
-              15
+                [latitude, longitude],
 
-            );
+                15
+
+              );
+
+              gpsHasCentered = true;
+
+            }
 
 
             /*
@@ -351,8 +383,7 @@
                * Don't request new data for every tiny
                * GPS movement.
                *
-               * Refresh when we've moved roughly
-               * 250 meters.
+               * Refresh after approximately 250 meters.
                */
 
               let shouldReload = true;
@@ -391,8 +422,10 @@
               if (shouldReload) {
 
                 loadVegetation(
+
                   latitude,
                   longitude
+
                 );
 
               }
@@ -440,7 +473,7 @@
 
 
       /*
-       * Remember where we last requested data.
+       * Remember where vegetation was last requested.
        */
 
       lastVegetationLatitude =
@@ -522,7 +555,6 @@
 
       try {
 
-
         const response =
           await fetch(
 
@@ -547,7 +579,7 @@
 
 
         /*
-         * Remove previous vegetation.
+         * Remove previous vegetation layer.
          */
 
         if (vegetationLayer) {
@@ -570,7 +602,6 @@
             data,
 
             {
-
 
               /*
                * ------------------------------------------------
@@ -745,8 +776,6 @@
      * =========================================================
      * VEGETATION COLORS
      * =========================================================
-     *
-     * These correspond to the major MNFI cover types.
      */
 
     function getVegetationColor(
@@ -864,7 +893,7 @@
 
 
       /*
-       * Turn OFF
+       * Turn vegetation OFF.
        */
 
       if (!vegetationVisible) {
@@ -885,7 +914,7 @@
 
 
       /*
-       * Turn ON.
+       * Turn vegetation ON.
        *
        * If GPS already has a position,
        * immediately load vegetation.
