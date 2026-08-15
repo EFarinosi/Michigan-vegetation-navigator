@@ -1,161 +1,557 @@
+```html
 <!DOCTYPE html>
-
 <html lang="en">
-
 <head>
-
   <meta charset="UTF-8">
-
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <title>Michigan Vegetation Navigator</title>
 
+  <!-- Leaflet map library -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+
   <style>
-
-    body {
-
-      font-family: Arial, sans-serif;
-
+    html, body {
+      height: 100%;
       margin: 0;
-
-      padding: 20px;
-
-      background: #f4f4f4;
-
-      text-align: center;
-
+      padding: 0;
+      font-family: Arial, sans-serif;
     }
 
-    h1 {
+    #map {
+      height: 100%;
+      width: 100%;
+    }
 
-      margin-bottom: 10px;
-
+    #controls {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      z-index: 1000;
+      background: white;
+      padding: 12px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.25);
     }
 
     button {
-
-      font-size: 18px;
-
-      padding: 14px 24px;
-
-      margin: 10px;
-
-      border-radius: 8px;
-
+      font-size: 16px;
+      padding: 10px 14px;
+      margin-right: 6px;
       border: none;
-
+      border-radius: 7px;
       background: #2c6e49;
-
       color: white;
+    }
 
+    button:active {
+      background: #1f5035;
     }
 
     #status {
-
-      margin: 20px auto;
-
-      padding: 15px;
-
-      background: white;
-
-      border-radius: 8px;
-
-      max-width: 500px;
-
+      margin-top: 8px;
+      font-size: 14px;
     }
-
-    #coordinates {
-
-      font-family: monospace;
-
-      font-size: 16px;
-
-    }
-
   </style>
-
 </head>
 
 <body>
 
-  <h1>Michigan Vegetation Navigator</h1>
+  <div id="controls">
 
-  <p>Historical vegetation map navigator</p>
+    <button onclick="startGPS()">
+      Start GPS
+    </button>
 
-  <button onclick="startGPS()">Start GPS</button>
+    <button onclick="toggleVegetation()">
+      Vegetation
+    </button>
 
-  <div id="status">
-
-    <strong>GPS Status:</strong>
-
-    <div id="coordinates">GPS not started</div>
+    <div id="status">
+      GPS not started
+    </div>
 
   </div>
 
+  <div id="map"></div>
+
+  <!-- Leaflet -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
   <script>
 
+    /*
+     * ---------------------------------------------------------
+     * MAP
+     * ---------------------------------------------------------
+     */
+
+    const map = L.map("map").setView(
+      [44.5, -84.5],
+      7
+    );
+
+
+    /*
+     * ---------------------------------------------------------
+     * BASEMAP
+     * ---------------------------------------------------------
+     */
+
+    L.tileLayer(
+      "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      {
+        maxZoom: 19,
+        attribution:
+          '&copy; OpenStreetMap contributors'
+      }
+    ).addTo(map);
+
+
+    /*
+     * ---------------------------------------------------------
+     * GPS MARKER
+     * ---------------------------------------------------------
+     */
+
+    let gpsMarker = null;
+
+    let gpsAccuracyCircle = null;
+
     let watchID = null;
+
+
+    /*
+     * ---------------------------------------------------------
+     * CIRCA-1800 VEGETATION LAYER
+     * ---------------------------------------------------------
+     *
+     * Michigan EGLE / MNFI ArcGIS service
+     */
+
+    const vegetationURL =
+      "https://www.mcgi.state.mi.us/maps/rest/services/BaseMap/General_Geology/MapServer/6";
+
+
+    let vegetationLayer = null;
+
+    let vegetationVisible = false;
+
+
+    /*
+     * ---------------------------------------------------------
+     * START GPS
+     * ---------------------------------------------------------
+     */
 
     function startGPS() {
 
       if (!navigator.geolocation) {
 
-        document.getElementById("coordinates").innerHTML =
-
+        document.getElementById("status").innerHTML =
           "GPS is not supported by this device.";
 
         return;
-
       }
 
-      document.getElementById("coordinates").innerHTML =
 
+      document.getElementById("status").innerHTML =
         "Waiting for GPS location...";
+
 
       watchID = navigator.geolocation.watchPosition(
 
         function(position) {
 
-          const latitude = position.coords.latitude;
+          const latitude =
+            position.coords.latitude;
 
-          const longitude = position.coords.longitude;
+          const longitude =
+            position.coords.longitude;
 
-          const accuracy = position.coords.accuracy;
+          const accuracy =
+            position.coords.accuracy;
 
-          document.getElementById("coordinates").innerHTML =
 
-            "Latitude: " + latitude.toFixed(6) + "<br>" +
+          /*
+           * Create marker the first time
+           */
 
-            "Longitude: " + longitude.toFixed(6) + "<br>" +
+          if (!gpsMarker) {
 
-            "Accuracy: approximately " + Math.round(accuracy) + " meters";
+            gpsMarker = L.circleMarker(
+              [latitude, longitude],
+              {
+                radius: 9,
+                color: "white",
+                weight: 3,
+                fillColor: "#0077ff",
+                fillOpacity: 1
+              }
+            ).addTo(map);
+
+          }
+
+          else {
+
+            gpsMarker.setLatLng(
+              [latitude, longitude]
+            );
+
+          }
+
+
+          /*
+           * Accuracy circle
+           */
+
+          if (!gpsAccuracyCircle) {
+
+            gpsAccuracyCircle =
+              L.circle(
+                [latitude, longitude],
+                {
+                  radius: accuracy,
+                  color: "#0077ff",
+                  fillOpacity: 0.08,
+                  weight: 1
+                }
+              ).addTo(map);
+
+          }
+
+          else {
+
+            gpsAccuracyCircle.setLatLng(
+              [latitude, longitude]
+            );
+
+            gpsAccuracyCircle.setRadius(
+              accuracy
+            );
+
+          }
+
+
+          /*
+           * Center map on GPS position
+           */
+
+          map.setView(
+            [latitude, longitude],
+            15
+          );
+
+
+          document.getElementById("status").innerHTML =
+            "GPS active<br>" +
+            "Latitude: " +
+            latitude.toFixed(6) +
+            "<br>" +
+            "Longitude: " +
+            longitude.toFixed(6) +
+            "<br>" +
+            "Accuracy: approximately " +
+            Math.round(accuracy) +
+            " meters";
+
+
+          /*
+           * Load vegetation around the
+           * current location.
+           */
+
+          if (vegetationVisible) {
+
+            loadVegetation(
+              latitude,
+              longitude
+            );
+
+          }
 
         },
 
         function(error) {
 
-          document.getElementById("coordinates").innerHTML =
-
-            "GPS error: " + error.message;
+          document.getElementById("status").innerHTML =
+            "GPS error: " +
+            error.message;
 
         },
 
         {
-
           enableHighAccuracy: true,
-
           maximumAge: 1000,
-
-          timeout: 10000
-
+          timeout: 15000
         }
 
       );
 
     }
 
+
+    /*
+     * ---------------------------------------------------------
+     * LOAD CIRCA-1800 VEGETATION
+     * ---------------------------------------------------------
+     */
+
+    async function loadVegetation(
+      latitude,
+      longitude
+    ) {
+
+      /*
+       * Create a small search area around
+       * the current GPS position.
+       */
+
+      const delta = 0.03;
+
+
+      const geometry = {
+
+        xmin: longitude - delta,
+
+        ymin: latitude - delta,
+
+        xmax: longitude + delta,
+
+        ymax: latitude + delta,
+
+        spatialReference: {
+          wkid: 4326
+        }
+
+      };
+
+
+      const params = new URLSearchParams({
+
+        where: "1=1",
+
+        geometry:
+          JSON.stringify(geometry),
+
+        geometryType:
+          "esriGeometryEnvelope",
+
+        inSR: "4326",
+
+        spatialRel:
+          "esriSpatialRelIntersects",
+
+        outFields:
+          "COVERTYPE,VEGCODE,LEGCODE,CNTY_NAME",
+
+        returnGeometry:
+          "true",
+
+        outSR:
+          "4326",
+
+        f:
+          "geojson"
+
+      });
+
+
+      try {
+
+        const response =
+          await fetch(
+            vegetationURL +
+            "/query?" +
+            params.toString()
+          );
+
+
+        const data =
+          await response.json();
+
+
+        if (vegetationLayer) {
+
+          map.removeLayer(
+            vegetationLayer
+          );
+
+        }
+
+
+        vegetationLayer =
+          L.geoJSON(
+            data,
+            {
+
+              style: function(feature) {
+
+                return {
+
+                  color: "#555",
+
+                  weight: 1,
+
+                  fillColor: getVegetationColor(
+                    feature.properties.COVERTYPE
+                  ),
+
+                  fillOpacity: 0.55
+
+                };
+
+              },
+
+
+              onEachFeature:
+                function(feature, layer) {
+
+                  const properties =
+                    feature.properties;
+
+
+                  layer.bindPopup(
+
+                    "<strong>Historical vegetation</strong><br><br>" +
+
+                    "<strong>Cover type:</strong> " +
+                    (properties.COVERTYPE || "Unknown") +
+
+                    "<br>" +
+
+                    "<strong>Vegetation code:</strong> " +
+                    (properties.VEGCODE || "Unknown") +
+
+                    "<br>" +
+
+                    "<strong>County:</strong> " +
+                    (properties.CNTY_NAME || "Unknown")
+
+                  );
+
+                }
+
+            }
+          ).addTo(map);
+
+      }
+
+      catch(error) {
+
+        console.error(
+          "Vegetation loading error:",
+          error
+        );
+
+      }
+
+    }
+
+
+    /*
+     * ---------------------------------------------------------
+     * VEGETATION COLORS
+     * ---------------------------------------------------------
+     */
+
+    function getVegetationColor(
+      coverType
+    ) {
+
+      const colors = {
+
+        "BEECH-SUGAR MAPLE FOREST":
+          "#8fad6a",
+
+        "BEECH-SUGAR MAPLE-HEMLOCK FOREST":
+          "#a0ba73",
+
+        "ASPEN-BIRCH FOREST":
+          "#7fa362",
+
+        "HEMLOCK-WHITE PINE FOREST":
+          "#6f9560",
+
+        "WHITE PINE-RED PINE FOREST":
+          "#557f59",
+
+        "OAK-HICKORY FOREST":
+          "#b28d57",
+
+        "OAK-PINE BARRENS":
+          "#c0a05b",
+
+        "BLACK ASH-SWAMP":
+          "#667d63",
+
+        "CEDAR-SWAMP":
+          "#587b68",
+
+        "TAMARACK":
+          "#789b73"
+
+      };
+
+
+      return colors[coverType]
+        || "#999999";
+
+    }
+
+
+    /*
+     * ---------------------------------------------------------
+     * TOGGLE VEGETATION
+     * ---------------------------------------------------------
+     */
+
+    function toggleVegetation() {
+
+      vegetationVisible =
+        !vegetationVisible;
+
+
+      if (!vegetationVisible) {
+
+        if (vegetationLayer) {
+
+          map.removeLayer(
+            vegetationLayer
+          );
+
+        }
+
+        return;
+
+      }
+
+
+      /*
+       * If GPS is already active,
+       * load vegetation immediately.
+       */
+
+      if (gpsMarker) {
+
+        const position =
+          gpsMarker.getLatLng();
+
+        loadVegetation(
+          position.lat,
+          position.lng
+        );
+
+      }
+
+    }
+
   </script>
 
 </body>
-
 </html>
+```
