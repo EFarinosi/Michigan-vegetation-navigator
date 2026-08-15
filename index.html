@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -14,6 +13,7 @@
   />
 
   <style>
+
     html, body {
       height: 100%;
       margin: 0;
@@ -56,7 +56,9 @@
       margin-top: 8px;
       font-size: 14px;
     }
+
   </style>
+
 </head>
 
 <body>
@@ -79,15 +81,21 @@
 
   <div id="map"></div>
 
+
   <!-- Leaflet -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+  </script>
+
 
   <script>
 
+
     /*
-     * ---------------------------------------------------------
+     * =========================================================
      * MAP
-     * ---------------------------------------------------------
+     * =========================================================
      */
 
     const map = L.map("map").setView(
@@ -97,25 +105,27 @@
 
 
     /*
-     * ---------------------------------------------------------
+     * =========================================================
      * BASEMAP
-     * ---------------------------------------------------------
+     * =========================================================
      */
 
     L.tileLayer(
       "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
       {
         maxZoom: 19,
+
         attribution:
           '&copy; OpenStreetMap contributors'
       }
+
     ).addTo(map);
 
 
     /*
-     * ---------------------------------------------------------
-     * GPS MARKER
-     * ---------------------------------------------------------
+     * =========================================================
+     * GPS
+     * =========================================================
      */
 
     let gpsMarker = null;
@@ -126,15 +136,18 @@
 
 
     /*
-     * ---------------------------------------------------------
-     * CIRCA-1800 VEGETATION LAYER
-     * ---------------------------------------------------------
+     * =========================================================
+     * MNFI CIRCA-1800 VEGETATION
+     * =========================================================
      *
-     * Michigan EGLE / MNFI ArcGIS service
+     * Official Michigan Land Cover Circa 1800
+     * FeatureServer maintained through ArcGIS.
+     *
+     * Layer 0 = Vegetation of Michigan circa 1800s
      */
 
     const vegetationURL =
-      "https://www.mcgi.state.mi.us/maps/rest/services/BaseMap/General_Geology/MapServer/6";
+      "https://services1.arcgis.com/4ezfu5dIwH83BUNL/ArcGIS/rest/services/Michigan_Land_Cover_Circa_1800/FeatureServer/0";
 
 
     let vegetationLayer = null;
@@ -143,9 +156,18 @@
 
 
     /*
-     * ---------------------------------------------------------
+     * Prevent excessive requests while driving.
+     */
+
+    let lastVegetationLatitude = null;
+
+    let lastVegetationLongitude = null;
+
+
+    /*
+     * =========================================================
      * START GPS
-     * ---------------------------------------------------------
+     * =========================================================
      */
 
     function startGPS() {
@@ -163,142 +185,252 @@
         "Waiting for GPS location...";
 
 
-      watchID = navigator.geolocation.watchPosition(
+      /*
+       * Avoid starting multiple GPS watches.
+       */
 
-        function(position) {
+      if (watchID !== null) {
 
-          const latitude =
-            position.coords.latitude;
+        navigator.geolocation.clearWatch(
+          watchID
+        );
 
-          const longitude =
-            position.coords.longitude;
-
-          const accuracy =
-            position.coords.accuracy;
+      }
 
 
-          /*
-           * Create marker the first time
-           */
+      watchID =
+        navigator.geolocation.watchPosition(
 
-          if (!gpsMarker) {
+          function(position) {
 
-            gpsMarker = L.circleMarker(
+            const latitude =
+              position.coords.latitude;
+
+            const longitude =
+              position.coords.longitude;
+
+            const accuracy =
+              position.coords.accuracy;
+
+
+            /*
+             * -------------------------------------------------
+             * GPS MARKER
+             * -------------------------------------------------
+             */
+
+            if (!gpsMarker) {
+
+              gpsMarker =
+                L.circleMarker(
+
+                  [latitude, longitude],
+
+                  {
+
+                    radius: 9,
+
+                    color: "white",
+
+                    weight: 3,
+
+                    fillColor: "#0077ff",
+
+                    fillOpacity: 1
+
+                  }
+
+                ).addTo(map);
+
+            }
+
+            else {
+
+              gpsMarker.setLatLng(
+
+                [latitude, longitude]
+
+              );
+
+            }
+
+
+            /*
+             * -------------------------------------------------
+             * GPS ACCURACY CIRCLE
+             * -------------------------------------------------
+             */
+
+            if (!gpsAccuracyCircle) {
+
+              gpsAccuracyCircle =
+                L.circle(
+
+                  [latitude, longitude],
+
+                  {
+
+                    radius: accuracy,
+
+                    color: "#0077ff",
+
+                    fillOpacity: 0.08,
+
+                    weight: 1
+
+                  }
+
+                ).addTo(map);
+
+            }
+
+            else {
+
+              gpsAccuracyCircle.setLatLng(
+
+                [latitude, longitude]
+
+              );
+
+              gpsAccuracyCircle.setRadius(
+                accuracy
+              );
+
+            }
+
+
+            /*
+             * -------------------------------------------------
+             * CENTER MAP
+             * -------------------------------------------------
+             */
+
+            map.setView(
+
               [latitude, longitude],
-              {
-                radius: 9,
-                color: "white",
-                weight: 3,
-                fillColor: "#0077ff",
-                fillOpacity: 1
-              }
-            ).addTo(map);
 
-          }
+              15
 
-          else {
-
-            gpsMarker.setLatLng(
-              [latitude, longitude]
             );
 
-          }
+
+            /*
+             * -------------------------------------------------
+             * STATUS
+             * -------------------------------------------------
+             */
+
+            document.getElementById("status").innerHTML =
+
+              "GPS active<br>" +
+
+              "Latitude: " +
+              latitude.toFixed(6) +
+
+              "<br>" +
+
+              "Longitude: " +
+              longitude.toFixed(6) +
+
+              "<br>" +
+
+              "Accuracy: approximately " +
+              Math.round(accuracy) +
+              " meters";
 
 
-          /*
-           * Accuracy circle
-           */
+            /*
+             * -------------------------------------------------
+             * VEGETATION
+             * -------------------------------------------------
+             */
 
-          if (!gpsAccuracyCircle) {
+            if (vegetationVisible) {
 
-            gpsAccuracyCircle =
-              L.circle(
-                [latitude, longitude],
-                {
-                  radius: accuracy,
-                  color: "#0077ff",
-                  fillOpacity: 0.08,
-                  weight: 1
+              /*
+               * Don't request new data for every tiny
+               * GPS movement.
+               *
+               * Refresh when we've moved roughly
+               * 250 meters.
+               */
+
+              let shouldReload = true;
+
+
+              if (
+                lastVegetationLatitude !== null &&
+                lastVegetationLongitude !== null
+              ) {
+
+                const distance =
+                  map.distance(
+
+                    [
+                      lastVegetationLatitude,
+                      lastVegetationLongitude
+                    ],
+
+                    [
+                      latitude,
+                      longitude
+                    ]
+
+                  );
+
+
+                if (distance < 250) {
+
+                  shouldReload = false;
+
                 }
-              ).addTo(map);
+
+              }
+
+
+              if (shouldReload) {
+
+                loadVegetation(
+                  latitude,
+                  longitude
+                );
+
+              }
+
+            }
+
+          },
+
+
+          function(error) {
+
+            document.getElementById("status").innerHTML =
+
+              "GPS error: " +
+              error.message;
+
+          },
+
+
+          {
+
+            enableHighAccuracy: true,
+
+            maximumAge: 1000,
+
+            timeout: 15000
 
           }
 
-          else {
-
-            gpsAccuracyCircle.setLatLng(
-              [latitude, longitude]
-            );
-
-            gpsAccuracyCircle.setRadius(
-              accuracy
-            );
-
-          }
-
-
-          /*
-           * Center map on GPS position
-           */
-
-          map.setView(
-            [latitude, longitude],
-            15
-          );
-
-
-          document.getElementById("status").innerHTML =
-            "GPS active<br>" +
-            "Latitude: " +
-            latitude.toFixed(6) +
-            "<br>" +
-            "Longitude: " +
-            longitude.toFixed(6) +
-            "<br>" +
-            "Accuracy: approximately " +
-            Math.round(accuracy) +
-            " meters";
-
-
-          /*
-           * Load vegetation around the
-           * current location.
-           */
-
-          if (vegetationVisible) {
-
-            loadVegetation(
-              latitude,
-              longitude
-            );
-
-          }
-
-        },
-
-        function(error) {
-
-          document.getElementById("status").innerHTML =
-            "GPS error: " +
-            error.message;
-
-        },
-
-        {
-          enableHighAccuracy: true,
-          maximumAge: 1000,
-          timeout: 15000
-        }
-
-      );
+        );
 
     }
 
 
     /*
-     * ---------------------------------------------------------
+     * =========================================================
      * LOAD CIRCA-1800 VEGETATION
-     * ---------------------------------------------------------
+     * =========================================================
      */
 
     async function loadVegetation(
@@ -306,8 +438,20 @@
       longitude
     ) {
 
+
       /*
-       * Create a small search area around
+       * Remember where we last requested data.
+       */
+
+      lastVegetationLatitude =
+        latitude;
+
+      lastVegetationLongitude =
+        longitude;
+
+
+      /*
+       * Search approximately 3 km around
        * the current GPS position.
        */
 
@@ -316,64 +460,95 @@
 
       const geometry = {
 
-        xmin: longitude - delta,
+        xmin:
+          longitude - delta,
 
-        ymin: latitude - delta,
+        ymin:
+          latitude - delta,
 
-        xmax: longitude + delta,
+        xmax:
+          longitude + delta,
 
-        ymax: latitude + delta,
+        ymax:
+          latitude + delta,
 
         spatialReference: {
+
           wkid: 4326
+
         }
 
       };
 
 
-      const params = new URLSearchParams({
+      /*
+       * Build ArcGIS query.
+       */
 
-        where: "1=1",
+      const params =
+        new URLSearchParams({
 
-        geometry:
-          JSON.stringify(geometry),
+          where:
+            "1=1",
 
-        geometryType:
-          "esriGeometryEnvelope",
+          geometry:
+            JSON.stringify(
+              geometry
+            ),
 
-        inSR: "4326",
+          geometryType:
+            "esriGeometryEnvelope",
 
-        spatialRel:
-          "esriSpatialRelIntersects",
+          inSR:
+            "4326",
 
-        outFields:
-          "COVERTYPE,VEGCODE,LEGCODE,CNTY_NAME",
+          spatialRel:
+            "esriSpatialRelIntersects",
 
-        returnGeometry:
-          "true",
+          outFields:
+            "VEGCODE,LEGCODE,COVERTYPE,CNTY_NAME",
 
-        outSR:
-          "4326",
+          returnGeometry:
+            "true",
 
-        f:
-          "geojson"
+          outSR:
+            "4326",
 
-      });
+          f:
+            "geojson"
+
+        });
 
 
       try {
 
+
         const response =
           await fetch(
+
             vegetationURL +
             "/query?" +
             params.toString()
+
           );
+
+
+        if (!response.ok) {
+
+          throw new Error(
+            "ArcGIS request failed."
+          );
+
+        }
 
 
         const data =
           await response.json();
 
+
+        /*
+         * Remove previous vegetation.
+         */
 
         if (vegetationLayer) {
 
@@ -384,32 +559,66 @@
         }
 
 
+        /*
+         * Create new vegetation layer.
+         */
+
         vegetationLayer =
+
           L.geoJSON(
+
             data,
+
             {
 
-              style: function(feature) {
 
-                return {
+              /*
+               * ------------------------------------------------
+               * POLYGON STYLE
+               * ------------------------------------------------
+               */
 
-                  color: "#555",
+              style:
 
-                  weight: 1,
+                function(feature) {
 
-                  fillColor: getVegetationColor(
-                    feature.properties.COVERTYPE
-                  ),
+                  return {
 
-                  fillOpacity: 0.55
+                    color:
+                      "#555555",
 
-                };
+                    weight:
+                      1,
 
-              },
+                    fillColor:
 
+                      getVegetationColor(
+
+                        feature.properties.COVERTYPE
+
+                      ),
+
+                    fillOpacity:
+                      0.55
+
+                  };
+
+                },
+
+
+              /*
+               * ------------------------------------------------
+               * POPUP
+               * ------------------------------------------------
+               */
 
               onEachFeature:
-                function(feature, layer) {
+
+                function(
+                  feature,
+                  layer
+                ) {
+
 
                   const properties =
                     feature.properties;
@@ -417,35 +626,114 @@
 
                   layer.bindPopup(
 
-                    "<strong>Historical vegetation</strong><br><br>" +
+                    "<strong>" +
 
-                    "<strong>Cover type:</strong> " +
-                    (properties.COVERTYPE || "Unknown") +
+                    "Michigan Vegetation " +
+                    "Circa 1800" +
 
-                    "<br>" +
+                    "</strong>" +
+
+                    "<br><br>" +
+
+                    "<strong>Cover type:</strong><br>" +
+
+                    (
+                      properties.COVERTYPE ||
+                      "Unknown"
+                    ) +
+
+                    "<br><br>" +
 
                     "<strong>Vegetation code:</strong> " +
-                    (properties.VEGCODE || "Unknown") +
 
-                    "<br>" +
+                    (
+                      properties.VEGCODE ||
+                      "Unknown"
+                    ) +
+
+                    "<br><br>" +
+
+                    "<strong>Legacy code:</strong> " +
+
+                    (
+                      properties.LEGCODE ||
+                      "Unknown"
+                    ) +
+
+                    "<br><br>" +
 
                     "<strong>County:</strong> " +
-                    (properties.CNTY_NAME || "Unknown")
+
+                    (
+                      properties.CNTY_NAME ||
+                      "Unknown"
+                    )
+
+                  );
+
+
+                  /*
+                   * Highlight polygon when touched.
+                   */
+
+                  layer.on(
+
+                    {
+
+                      mouseover:
+
+                        function(e) {
+
+                          e.target.setStyle({
+
+                            weight: 3,
+
+                            color: "#000000",
+
+                            fillOpacity: 0.75
+
+                          });
+
+                        },
+
+
+                      mouseout:
+
+                        function(e) {
+
+                          vegetationLayer.resetStyle(
+                            e.target
+                          );
+
+                        }
+
+                    }
 
                   );
 
                 }
 
             }
-          ).addTo(map);
+
+          );
+
+
+        /*
+         * Add vegetation to map.
+         */
+
+        vegetationLayer.addTo(map);
+
 
       }
 
       catch(error) {
 
         console.error(
+
           "Vegetation loading error:",
           error
+
         );
 
       }
@@ -454,69 +742,133 @@
 
 
     /*
-     * ---------------------------------------------------------
+     * =========================================================
      * VEGETATION COLORS
-     * ---------------------------------------------------------
+     * =========================================================
+     *
+     * These correspond to the major MNFI cover types.
      */
 
     function getVegetationColor(
       coverType
     ) {
 
+
       const colors = {
 
-        "BEECH-SUGAR MAPLE FOREST":
-          "#8fad6a",
-
-        "BEECH-SUGAR MAPLE-HEMLOCK FOREST":
-          "#a0ba73",
 
         "ASPEN-BIRCH FOREST":
-          "#7fa362",
+          "#f7d320",
 
-        "HEMLOCK-WHITE PINE FOREST":
-          "#6f9560",
 
-        "WHITE PINE-RED PINE FOREST":
-          "#557f59",
+        "MIXED OAK FOREST":
+          "#f2c933",
+
+
+        "MIXED OAK SAVANNA":
+          "#f0c648",
+
+
+        "MIXED PINE-OAK FOREST":
+          "#ebbf59",
+
+
+        "MUSKEG/BOG":
+          "#e6bc6a",
+
 
         "OAK-HICKORY FOREST":
-          "#b28d57",
+          "#e0b769",
 
-        "OAK-PINE BARRENS":
-          "#c0a05b",
 
-        "BLACK ASH-SWAMP":
-          "#667d63",
+        "OAK/PINE BARRENS":
+          "#d6a854",
+
+
+        "BEECH-SUGAR MAPLE FOREST":
+          "#8fb86a",
+
+
+        "BEECH-SUGAR MAPLE-HEMLOCK FOREST":
+          "#9fc477",
+
+
+        "HEMLOCK-WHITE PINE FOREST":
+          "#729c63",
+
+
+        "WHITE PINE-RED PINE FOREST":
+          "#5d8c5c",
+
+
+        "ASPEN-BIRCH":
+          "#f7d320",
+
 
         "CEDAR-SWAMP":
-          "#587b68",
+          "#5c876d",
+
+
+        "BLACK ASH-SWAMP":
+          "#6c886c",
+
 
         "TAMARACK":
-          "#789b73"
+          "#789b73",
+
+
+        "MIXED HARDWOOD SWAMP":
+          "#718d68",
+
+
+        "MIXED CONIFER SWAMP":
+          "#537b68",
+
+
+        "SHRUB SWAMP/EMERGENT MARSH":
+          "#8eaa73",
+
+
+        "WET PRAIRIE":
+          "#b6b85f",
+
+
+        "GRASSLAND":
+          "#c9bc62"
 
       };
 
 
-      return colors[coverType]
-        || "#999999";
+      return (
+
+        colors[coverType] ||
+
+        "#999999"
+
+      );
 
     }
 
 
     /*
-     * ---------------------------------------------------------
+     * =========================================================
      * TOGGLE VEGETATION
-     * ---------------------------------------------------------
+     * =========================================================
      */
 
     function toggleVegetation() {
+
 
       vegetationVisible =
         !vegetationVisible;
 
 
+      /*
+       * Turn OFF
+       */
+
       if (!vegetationVisible) {
+
 
         if (vegetationLayer) {
 
@@ -526,32 +878,50 @@
 
         }
 
+
         return;
 
       }
 
 
       /*
-       * If GPS is already active,
-       * load vegetation immediately.
+       * Turn ON.
+       *
+       * If GPS already has a position,
+       * immediately load vegetation.
        */
 
       if (gpsMarker) {
 
+
         const position =
           gpsMarker.getLatLng();
 
+
         loadVegetation(
+
           position.lat,
+
           position.lng
+
         );
+
+      }
+
+      else {
+
+
+        document.getElementById("status").innerHTML =
+
+          "Vegetation enabled. " +
+          "Start GPS to load historical vegetation.";
 
       }
 
     }
 
+
   </script>
 
 </body>
 </html>
-```
