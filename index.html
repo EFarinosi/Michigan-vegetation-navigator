@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Michigan Vegetation Navigator</title>
+
+  <style>
+
+    body {
+
+      font-family: Arial, sans-serif;
+
+      margin: 0;
+
+      padding: 20px;
+
+      background: #f4f4f4;
+
+      text-align: center;
+
+    }
+
+    h1 {
+
+      margin-bottom: 10px;
+
+    }
+
+    button {
+
+      font-size: 18px;
+
+      padding: 14px 24px;
+
+      margin: 10px;
+
+      border-radius: 8px;
+
+      border: none;
+
+      background: #2c6e49;
+
+      color: white;
+
+    }
+
+    #status {
+
+      margin: 20px auto;
+
+      padding: 15px;
+
+      background: white;
+
+      border-radius: 8px;
+
+      max-width: 500px;
+
+    }
+
+    #coordinates {
+
+      font-family: monospace;
+
+      font-size: 16px;
+
+    }
+
+  </style>
+
+</head>
+
+<body>
+
+  <h1>Michigan Vegetation Navigator</h1>
+
+  <p>Historical vegetation map navigator</p>
+
+  <button onclick="startGPS()">Start GPS</button>
+
+  <div id="status">
+
+    <strong>GPS Status:</strong>
+
+    <div id="coordinates">GPS not started</div>
+
+  </div>
+
+  <script>
+
+    let watchID = null;
+
+    function startGPS() {
+
+      if (!navigator.geolocation) {
+
+        document.getElementById("coordinates").innerHTML =
+
+          "GPS is not supported by this device.";
+
+        return;
+
+      }
+
+      document.getElementById("coordinates").innerHTML =
+
+        "Waiting for GPS location...";
+
+      watchID = navigator.geolocation.watchPosition(
+
+        function(position) {
+
+          const latitude = position.coords.latitude;
+
+          const longitude = position.coords.longitude;
+
+          const accuracy = position.coords.accuracy;
+
+          document.getElementById("coordinates").innerHTML =
+
+            "Latitude: " + latitude.toFixed(6) + "<br>" +
+
+            "Longitude: " + longitude.toFixed(6) + "<br>" +
+
+            "Accuracy: approximately " + Math.round(accuracy) + " meters";
+
+        },
+
+        function(error) {
+
+          document.getElementById("coordinates").innerHTML =
+
+            "GPS error: " + error.message;
+
+        },
+
+        {
+
+          enableHighAccuracy: true,
+
+          maximumAge: 1000,
+
+          timeout: 10000
+
+        }
+
+      );
+
+    }
+
+  </script>
+
+</body>
+
+</html>
