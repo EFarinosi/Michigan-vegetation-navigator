@@ -10,7 +10,7 @@
     content="width=device-width, initial-scale=1.0"
   >
 
-  <title>Michigan Vegetation Navigator</title>
+  <title>Historical Vegetation Navigator</title>
 
 
   <!-- Leaflet -->
@@ -232,7 +232,7 @@
 
       <div id="currentTitle">
 
-        CIRCA-1800 VEGETATION AT YOUR LOCATION
+        HISTORICAL VEGETATION AT YOUR LOCATION
 
       </div>
 
@@ -330,18 +330,41 @@
 
     let currentVegetationVisible = false;
 
-    let currentVegetationTimer = null;
+    let lastVegetationPosition = null;
 
-    let lastVegetationCode = null;
+    let lastState = null;
+
+
+    /* ========================================================
+       HISTORICAL VEGETATION SERVICES
+       ======================================================== */
 
 
     /*
-     * Official MNFI circa-1800 vegetation layer.
+     * MICHIGAN
+     *
+     * Michigan Natural Features Inventory
+     * Vegetation circa 1800
+     *
+     * 31 historical cover types.
      */
 
-    const vegetationURL =
+    const michiganURL =
 
-      "https://www.mcgi.state.mi.us/maps/rest/services/BaseMap/General_Geology/MapServer/6";
+      "https://services1.arcgis.com/4ezfu5dIwH83BUNL/ArcGIS/rest/services/Michigan_Land_Cover_Circa_1800/FeatureServer/0";
+
+
+    /*
+     * ILLINOIS
+     *
+     * University of Illinois / Prairie Research Institute
+     *
+     * Early 1800s Land Cover
+     */
+
+    const illinoisURL =
+
+      "https://gis.prairie.illinois.edu/arcgis/rest/services/Land_Cover/Presettlement_LandCover_All/MapServer/0";
 
 
     /* ========================================================
@@ -353,6 +376,90 @@
       document.getElementById(
         "status"
       ).innerHTML = message;
+
+    }
+
+
+    /* ========================================================
+       DETERMINE STATE FROM GPS
+       ======================================================== */
+
+    function getHistoricalState(
+      latitude,
+      longitude
+    ) {
+
+
+      /*
+       * Rough geographic boundaries.
+       *
+       * These are intentionally broad.
+       *
+       * The actual vegetation query determines
+       * whether a historical polygon exists.
+       */
+
+
+      /*
+       * Michigan
+       *
+       * Includes both peninsulas.
+       */
+
+      const inMichigan =
+
+        (
+          longitude >= -90.5 &&
+          longitude <= -82.0 &&
+          latitude >= 41.5 &&
+          latitude <= 49.0
+        );
+
+
+      /*
+       * Illinois
+       */
+
+      const inIllinois =
+
+        (
+          longitude >= -91.6 &&
+          longitude <= -87.0 &&
+          latitude >= 36.9 &&
+          latitude <= 42.6
+        );
+
+
+      /*
+       * IMPORTANT:
+       *
+       * The Michigan and Illinois bounding boxes overlap
+       * slightly around the Chicago / Lake Michigan region.
+       *
+       * Use longitude to resolve the overlap.
+       */
+
+      if (
+        inMichigan &&
+        !(
+          longitude < -87.0 &&
+          latitude < 42.6
+        )
+      ) {
+
+        return "Michigan";
+
+      }
+
+
+      if (inIllinois) {
+
+        return "Illinois";
+
+      }
+
+
+      return null;
 
     }
 
@@ -555,8 +662,28 @@
 
 
             /* ----------------------------------------------
+               DETERMINE STATE
+               ---------------------------------------------- */
+
+            const state =
+
+              getHistoricalState(
+
+                latitude,
+                longitude
+
+              );
+
+
+            /* ----------------------------------------------
                STATUS
                ---------------------------------------------- */
+
+            let stateText =
+
+              state ||
+              "Outside current historical coverage";
+
 
             setStatus(
 
@@ -574,7 +701,12 @@
 
               "Accuracy: approximately " +
               Math.round(accuracy) +
-              " meters"
+              " meters" +
+
+              "<br>" +
+
+              "Historical dataset: " +
+              stateText
 
             );
 
@@ -586,8 +718,10 @@
             if (currentVegetationVisible) {
 
               updateCurrentVegetation(
+
                 latitude,
                 longitude
+
               );
 
             }
@@ -691,88 +825,11 @@
 
 
       setStatus(
-        "Loading circa-1800 vegetation..."
+        "Loading historical vegetation..."
       );
 
 
       loadVegetation();
-
-    }
-
-
-    /* ========================================================
-       LAT/LON → WEB MERCATOR
-       ======================================================== */
-
-    function lonLatToWebMercator(
-
-      longitude,
-      latitude
-
-    ) {
-
-
-      const radius =
-        6378137;
-
-
-      const x =
-
-        radius *
-        longitude *
-        Math.PI /
-        180;
-
-
-      let y =
-
-        latitude *
-        Math.PI /
-        180;
-
-
-      /*
-       * Prevent mathematical problems near poles.
-       */
-
-      if (y > 1.4844222297453322) {
-
-        y =
-          1.4844222297453322;
-
-      }
-
-
-      if (y < -1.4844222297453322) {
-
-        y =
-          -1.4844222297453322;
-
-      }
-
-
-      y =
-
-        radius *
-        Math.log(
-
-          Math.tan(
-
-            Math.PI / 4 +
-            y / 2
-
-          )
-
-        );
-
-
-      return {
-
-        x: x,
-
-        y: y
-
-      };
 
     }
 
@@ -793,7 +850,42 @@
 
         setStatus(
 
-          "Zoom in closer to Michigan to load historical vegetation."
+          "Zoom in closer to load historical vegetation."
+
+        );
+
+
+        return;
+
+      }
+
+
+      const center =
+
+        map.getCenter();
+
+
+      const state =
+
+        getHistoricalState(
+
+          center.lat,
+          center.lng
+
+        );
+
+
+      /*
+       * If the map center isn't in either state,
+       * don't query a dataset.
+       */
+
+      if (!state) {
+
+
+        setStatus(
+
+          "Move the map into Michigan or Illinois to load historical vegetation."
 
         );
 
@@ -823,32 +915,75 @@
         bounds.getNorth();
 
 
+      let url;
+
+      let inSR;
+
+      let outFields;
+
+
       /*
-       * Convert map bounds to Web Mercator.
+       * ----------------------------------------------------
+       * MICHIGAN
+       * ----------------------------------------------------
        */
 
-      const southwest =
-
-        lonLatToWebMercator(
-
-          west,
-          south
-
-        );
+      if (state === "Michigan") {
 
 
-      const northeast =
+        url =
+          michiganURL;
 
-        lonLatToWebMercator(
 
-          east,
-          north
+        /*
+         * Michigan service uses its own projection.
+         *
+         * We allow ArcGIS to transform from geographic
+         * coordinates by specifying inSR 4326.
+         */
 
-        );
+        inSR =
+          "4326";
+
+
+        outFields =
+          "VEGCODE,LEGCODE,COVERTYPE,CNTY_NAME";
+
+      }
 
 
       /*
-       * ArcGIS geometry envelope.
+       * ----------------------------------------------------
+       * ILLINOIS
+       * ----------------------------------------------------
+       */
+
+      else {
+
+
+        url =
+          illinoisURL;
+
+
+        /*
+         * Illinois layer is UTM Zone 16N.
+         */
+
+        inSR =
+          "4326";
+
+
+        outFields =
+          "LAND_CODE,MAP,ACRES,GLO_PY6_ID";
+
+      }
+
+
+      /*
+       * Query using geographic coordinates.
+       *
+       * ArcGIS will transform the envelope into the
+       * service's native projection.
        */
 
       const geometry =
@@ -856,29 +991,25 @@
         JSON.stringify({
 
           xmin:
-            southwest.x,
+            west,
 
           ymin:
-            southwest.y,
+            south,
 
           xmax:
-            northeast.x,
+            east,
 
           ymax:
-            northeast.y,
+            north,
 
           spatialReference: {
 
-            wkid: 102113
+            wkid: 4326
 
           }
 
         });
 
-
-      /*
-       * ArcGIS query.
-       */
 
       const params =
 
@@ -894,13 +1025,13 @@
             "esriGeometryEnvelope",
 
           inSR:
-            "102113",
+            inSR,
 
           spatialRel:
             "esriSpatialRelIntersects",
 
           outFields:
-            "VEGCODE,LEGCODE,COVERTYPE,CNTY_NAME",
+            outFields,
 
           returnGeometry:
             "true",
@@ -921,7 +1052,7 @@
 
           await fetch(
 
-            vegetationURL +
+            url +
             "/query?" +
             params.toString()
 
@@ -1005,6 +1136,40 @@
                 function(feature) {
 
 
+                  const p =
+                    feature.properties;
+
+
+                  let color;
+
+
+                  if (state === "Michigan") {
+
+
+                    color =
+
+                      getMichiganVegetationColor(
+
+                        p.COVERTYPE
+
+                      );
+
+                  }
+
+                  else {
+
+
+                    color =
+
+                      getIllinoisVegetationColor(
+
+                        p.LAND_CODE
+
+                      );
+
+                  }
+
+
                   return {
 
                     color:
@@ -1014,12 +1179,7 @@
                       1,
 
                     fillColor:
-
-                      getVegetationColor(
-
-                        feature.properties.COVERTYPE
-
-                      ),
+                      color,
 
                     fillOpacity:
                       0.65
@@ -1041,41 +1201,89 @@
                     feature.properties;
 
 
+                  let popup;
+
+
+                  if (state === "Michigan") {
+
+
+                    popup =
+
+                      "<strong>" +
+                      "Michigan Circa-1800 Vegetation" +
+                      "</strong>" +
+
+                      "<br><br>" +
+
+                      "<strong>Historical cover type:</strong><br>" +
+
+                      (
+                        p.COVERTYPE ||
+                        "Unknown"
+                      ) +
+
+                      "<br><br>" +
+
+                      "<strong>Vegetation code:</strong> " +
+
+                      (
+                        p.VEGCODE ||
+                        "Unknown"
+                      ) +
+
+                      "<br><br>" +
+
+                      "<strong>County:</strong> " +
+
+                      (
+                        p.CNTY_NAME ||
+                        "Unknown"
+                      );
+
+                  }
+
+                  else {
+
+
+                    popup =
+
+                      "<strong>" +
+                      "Illinois Early-1800s Land Cover" +
+                      "</strong>" +
+
+                      "<br><br>" +
+
+                      "<strong>Historical land cover:</strong><br>" +
+
+                      getIllinoisLandName(
+
+                        p.LAND_CODE
+
+                      ) +
+
+                      "<br><br>" +
+
+                      "<strong>Land code:</strong> " +
+
+                      (
+                        p.LAND_CODE ||
+                        "Unknown"
+                      ) +
+
+                      "<br><br>" +
+
+                      "<strong>GLO ID:</strong> " +
+
+                      (
+                        p.GLO_PY6_ID ||
+                        "Unknown"
+                      );
+
+                  }
+
+
                   layer.bindPopup(
-
-                    "<strong>" +
-
-                    "Michigan Vegetation Circa 1800" +
-
-                    "</strong>" +
-
-                    "<br><br>" +
-
-                    "<strong>Historical cover type:</strong><br>" +
-
-                    (
-                      p.COVERTYPE ||
-                      "Unknown"
-                    ) +
-
-                    "<br><br>" +
-
-                    "<strong>Vegetation code:</strong> " +
-
-                    (
-                      p.VEGCODE ||
-                      "Unknown"
-                    ) +
-
-                    "<br><br>" +
-
-                    "<strong>County:</strong> " +
-
-                    (
-                      p.CNTY_NAME ||
-                      "Unknown"
-                    )
-
+                    popup
                   );
 
 
@@ -1134,7 +1342,12 @@
 
           "Historical vegetation ON<br>" +
 
+          state +
+
+          ": " +
+
           data.features.length +
+
           " polygons loaded"
 
         );
@@ -1205,15 +1418,6 @@
 
         box.style.display =
           "none";
-
-
-        if (currentVegetationTimer) {
-
-          clearInterval(
-            currentVegetationTimer
-          );
-
-        }
 
 
         return;
@@ -1290,21 +1494,41 @@
 
 
       /*
-       * Don't send repeated queries for
-       * essentially the same location.
+       * Determine which historical dataset
+       * applies to the GPS location.
+       */
+
+      const state =
+
+        getHistoricalState(
+
+          latitude,
+          longitude
+
+        );
+
+
+      /*
+       * Don't repeatedly query the same position.
        */
 
       const positionKey =
 
+        state +
+
+        "|" +
+
         latitude.toFixed(5) +
+
         "," +
+
         longitude.toFixed(5);
 
 
       if (
 
         positionKey ===
-        lastVegetationCode
+        lastVegetationPosition
 
       ) {
 
@@ -1313,26 +1537,83 @@
       }
 
 
-      lastVegetationCode =
+      lastVegetationPosition =
         positionKey;
 
 
       /*
-       * Convert GPS position to Web Mercator.
+       * Outside our current coverage.
        */
 
-      const point =
+      if (!state) {
 
-        lonLatToWebMercator(
 
-          longitude,
-          latitude
+        document.getElementById(
+          "currentType"
+        ).innerHTML =
 
-        );
+          "No historical dataset";
+
+
+        document.getElementById(
+          "currentDetails"
+        ).innerHTML =
+
+          "The current GPS location is outside the Michigan and Illinois historical vegetation datasets.";
+
+        return;
+
+      }
+
+
+      let url;
+
+      let outFields;
 
 
       /*
-       * Create point geometry.
+       * ----------------------------------------------------
+       * MICHIGAN
+       * ----------------------------------------------------
+       */
+
+      if (state === "Michigan") {
+
+
+        url =
+          michiganURL;
+
+
+        outFields =
+          "VEGCODE,LEGCODE,COVERTYPE,CNTY_NAME";
+
+      }
+
+
+      /*
+       * ----------------------------------------------------
+       * ILLINOIS
+       * ----------------------------------------------------
+       */
+
+      else {
+
+
+        url =
+          illinoisURL;
+
+
+        outFields =
+          "LAND_CODE,MAP,ACRES,GLO_PY6_ID";
+
+      }
+
+
+      /*
+       * Create geographic point.
+       *
+       * We send it as EPSG:4326 and let ArcGIS
+       * transform it into the dataset's projection.
        */
 
       const geometry =
@@ -1340,24 +1621,19 @@
         JSON.stringify({
 
           x:
-            point.x,
+            longitude,
 
           y:
-            point.y,
+            latitude,
 
           spatialReference: {
 
-            wkid: 102113
+            wkid: 4326
 
           }
 
         });
 
-
-      /*
-       * Query the polygon containing
-       * the GPS point.
-       */
 
       const params =
 
@@ -1373,13 +1649,13 @@
             "esriGeometryPoint",
 
           inSR:
-            "102113",
+            "4326",
 
           spatialRel:
             "esriSpatialRelIntersects",
 
           outFields:
-            "VEGCODE,LEGCODE,COVERTYPE,CNTY_NAME",
+            outFields,
 
           returnGeometry:
             "false",
@@ -1397,7 +1673,7 @@
 
           await fetch(
 
-            vegetationURL +
+            url +
             "/query?" +
             params.toString()
 
@@ -1448,14 +1724,14 @@
             "currentType"
           ).innerHTML =
 
-            "No mapped vegetation";
+            "No mapped historical vegetation";
 
 
           document.getElementById(
             "currentDetails"
           ).innerHTML =
 
-            "This location does not fall within a mapped MNFI circa-1800 vegetation polygon.";
+            "No historical polygon was found at your GPS location.";
 
           return;
 
@@ -1471,49 +1747,125 @@
           data.features[0].attributes;
 
 
-        const coverType =
+        /*
+         * ----------------------------------------------------
+         * MICHIGAN RESULT
+         * ----------------------------------------------------
+         */
 
-          properties.COVERTYPE ||
-          "Unknown";
-
-
-        const vegCode =
-
-          properties.VEGCODE ||
-          "Unknown";
+        if (state === "Michigan") {
 
 
-        const county =
+          const coverType =
 
-          properties.CNTY_NAME ||
-          "Unknown";
+            properties.COVERTYPE ||
+            "Unknown";
+
+
+          const vegCode =
+
+            properties.VEGCODE ||
+            "Unknown";
+
+
+          const county =
+
+            properties.CNTY_NAME ||
+            "Unknown";
+
+
+          document.getElementById(
+            "currentType"
+          ).innerHTML =
+
+            formatVegetationName(
+              coverType
+            );
+
+
+          document.getElementById(
+            "currentDetails"
+          ).innerHTML =
+
+            "<strong>Michigan MNFI circa-1800</strong>" +
+
+            "<br>" +
+
+            "Vegetation code: " +
+            vegCode +
+
+            "<br>" +
+
+            "County: " +
+            county;
+
+        }
 
 
         /*
-         * Display vegetation.
+         * ----------------------------------------------------
+         * ILLINOIS RESULT
+         * ----------------------------------------------------
          */
 
-        document.getElementById(
-          "currentType"
-        ).innerHTML =
-
-          formatVegetationName(
-            coverType
-          );
+        else {
 
 
-        document.getElementById(
-          "currentDetails"
-        ).innerHTML =
+          const landCode =
 
-          "Vegetation code: " +
-          vegCode +
+            properties.LAND_CODE ||
+            "Unknown";
 
-          "<br>" +
 
-          "County: " +
-          county;
+          const landName =
 
+            getIllinoisLandName(
+              landCode
+            );
+
+
+          const mapName =
+
+            properties.MAP ||
+            "Unknown";
+
+
+          const acres =
+
+            properties.ACRES ||
+            "Unknown";
+
+
+          document.getElementById(
+            "currentType"
+          ).innerHTML =
+
+            landName;
+
+
+          document.getElementById(
+            "currentDetails"
+          ).innerHTML =
+
+            "<strong>Illinois early-1800s land cover</strong>" +
+
+            "<br>" +
+
+            "Land code: " +
+            landCode +
+
+            "<br>" +
+
+            "Original map: " +
+            mapName +
+
+            "<br>" +
+
+            "Mapped area: " +
+            acres +
+            " acres";
+
+        }
 
       }
 
@@ -1578,10 +1930,171 @@
 
 
     /* ========================================================
-       VEGETATION COLORS
+       ILLINOIS LAND-COVER NAMES
        ======================================================== */
 
-    function getVegetationColor(
+    function getIllinoisLandName(
+      code
+    ) {
+
+
+      const names = {
+
+
+        "ba":
+          "Bayou",
+
+        "bl":
+          "Bluff / Sand Bluff",
+
+        "bp":
+          "Brush Prairie",
+
+        "br":
+          "Barrens / Open Barrens",
+
+        "bt":
+          "Bottom Land",
+
+        "cl":
+          "Cliffs",
+
+        "dg":
+          "Dry Ground",
+
+        "fa":
+          "Farm",
+
+        "fi":
+          "Field",
+
+        "ft":
+          "Fallen Timber",
+
+        "gl":
+          "Glade",
+
+        "hi":
+          "Hills / Sandy Hills",
+
+        "hr":
+          "High Ridge / Sandy Ridge",
+
+        "in":
+          "Indian Trace",
+
+        "is":
+          "Island",
+
+        "la":
+          "Lake",
+
+        "le":
+          "Ledge",
+
+        "li":
+          "Licks",
+
+        "ll":
+          "Low Land",
+
+        "ma":
+          "Marsh",
+
+        "mo":
+          "Mound / High Mound",
+
+        "or":
+          "Orchard",
+
+        "pa":
+          "Pasture",
+
+        "pl":
+          "Plantation",
+
+        "po":
+          "Pond",
+
+        "pr":
+          "Prairie",
+
+        "rg":
+          "Rough",
+
+        "ri":
+          "River / Wide River",
+
+        "rl":
+          "Rolling Land",
+
+        "ro":
+          "Rocky",
+
+        "rv":
+          "Ravine / Gully / Valley / Hollow",
+
+        "sa":
+          "Swale",
+
+        "sd":
+          "Sandy Prairie / Sandy Ground",
+
+        "sk":
+          "Sinkhole",
+
+        "sl":
+          "Slough",
+
+        "sp":
+          "Spring",
+
+        "ss":
+          "Slash",
+
+        "sw":
+          "Swamp",
+
+        "th":
+          "Thicket",
+
+        "ti":
+          "Timber / Forest / Grove / Wooded",
+
+        "wl":
+          "Wet Land",
+
+        "wp":
+          "Wet Prairie"
+
+      };
+
+
+      if (!code) {
+
+        return "Unknown";
+
+      }
+
+
+      return (
+
+        names[
+          code.toLowerCase()
+        ] ||
+
+        "Unknown historical land cover"
+
+      );
+
+    }
+
+
+    /* ========================================================
+       MICHIGAN VEGETATION COLORS
+       ======================================================== */
+
+    function getMichiganVegetationColor(
       coverType
     ) {
 
@@ -1592,122 +2105,92 @@
         "ASPEN-BIRCH FOREST":
           "rgb(127,163,98)",
 
-
         "BEECH-SUGAR MAPLE FOREST":
           "rgb(143,173,106)",
-
 
         "BEECH-SUGAR MAPLE-HEMLOCK FOREST":
           "rgb(160,186,115)",
 
-
         "BLACK ASH SWAMP":
           "rgb(179,199,125)",
-
 
         "BLACK OAK BARREN":
           "rgb(195,209,134)",
 
-
         "CEDAR SWAMP":
           "rgb(214,222,146)",
-
 
         "EXPOSED BEDROCK":
           "rgb(232,232,155)",
 
-
         "GRASSLAND":
           "rgb(242,237,162)",
-
 
         "HEMLOCK-WHITE PINE FOREST":
           "rgb(242,234,160)",
 
-
         "HEMLOCK-YELLOW BIRCH FOREST":
           "rgb(242,231,155)",
-
 
         "JACK PINE-RED PINE FOREST":
           "rgb(242,226,153)",
 
-
         "LAKE/RIVER":
           "rgb(242,222,148)",
-
 
         "MIXED CONIFER SWAMP":
           "rgb(242,217,143)",
 
-
         "MIXED HARDWOOD SWAMP":
           "rgb(242,213,141)",
-
 
         "MIXED OAK FOREST":
           "rgb(242,208,136)",
 
-
         "MIXED OAK SAVANNA":
           "rgb(240,201,134)",
-
 
         "MIXED PINE-OAK FOREST":
           "rgb(232,190,132)",
 
-
         "MUSKEG/BOG":
           "rgb(227,181,132)",
-
 
         "OAK-HICKORY FOREST":
           "rgb(219,173,132)",
 
-
         "OAK/PINE BARRENS":
           "rgb(214,165,131)",
-
 
         "PINE BARRENS":
           "rgb(207,156,128)",
 
-
         "SAND DUNE":
           "rgb(201,149,127)",
-
 
         "SHRUB SWAMP/EMERGENT MARSH":
           "rgb(194,140,124)",
 
-
         "SPRUCE-FIR-CEDAR FOREST":
           "rgb(201,148,137)",
-
 
         "SUGAR MAPLE-BASSWOOD FOREST":
           "rgb(212,158,155)",
 
-
         "SUGAR MAPLE-HEMLOCK FOREST":
           "rgb(219,171,174)",
-
 
         "SUGAR MAPLE-YELLOW BIRCH FOREST":
           "rgb(227,184,192)",
 
-
         "WET PRAIRIE":
           "rgb(235,197,210)",
-
 
         "WHITE PINE-MIXED HARDWOOD FOREST":
           "rgb(240,211,225)",
 
-
         "WHITE PINE-RED PINE FOREST":
           "rgb(247,228,242)",
-
 
         "WHITE PINE-WHITE OAK FOREST":
           "rgb(255,242,255)"
@@ -1718,6 +2201,162 @@
       return (
 
         colors[coverType] ||
+        "#cccccc"
+
+      );
+
+    }
+
+
+    /* ========================================================
+       ILLINOIS VEGETATION COLORS
+       ======================================================== */
+
+    function getIllinoisVegetationColor(
+      code
+    ) {
+
+
+      const colors = {
+
+
+        "ba":
+          "rgb(13,0,129)",
+
+        "bl":
+          "rgb(120,120,120)",
+
+        "bp":
+          "rgb(183,223,134)",
+
+        "br":
+          "rgb(146,174,47)",
+
+        "bt":
+          "rgb(1,99,0)",
+
+        "cl":
+          "rgb(120,120,120)",
+
+        "dg":
+          "rgb(160,102,50)",
+
+        "fa":
+          "rgb(254,194,194)",
+
+        "fi":
+          "rgb(254,194,194)",
+
+        "ft":
+          "rgb(2,219,0)",
+
+        "gl":
+          "rgb(165,254,164)",
+
+        "hi":
+          "rgb(151,71,73)",
+
+        "hr":
+          "rgb(151,71,73)",
+
+        "in":
+          "rgb(120,120,120)",
+
+        "is":
+          "rgb(219,205,0)",
+
+        "la":
+          "rgb(13,0,129)",
+
+        "le":
+          "rgb(120,120,120)",
+
+        "li":
+          "rgb(99,0,0)",
+
+        "ll":
+          "rgb(59,104,0)",
+
+        "ma":
+          "rgb(173,164,254)",
+
+        "mo":
+          "rgb(120,120,120)",
+
+        "or":
+          "rgb(254,194,194)",
+
+        "pa":
+          "rgb(254,194,194)",
+
+        "pl":
+          "rgb(254,194,194)",
+
+        "po":
+          "rgb(22,0,219)",
+
+        "pr":
+          "rgb(194,254,194)",
+
+        "rg":
+          "rgb(120,120,120)",
+
+        "ri":
+          "rgb(13,0,129)",
+
+        "rl":
+          "rgb(151,71,73)",
+
+        "ro":
+          "rgb(160,102,50)",
+
+        "rv":
+          "rgb(0,37,99)",
+
+        "sa":
+          "rgb(0,129,254)",
+
+        "sd":
+          "rgb(160,102,50)",
+
+        "sk":
+          "rgb(192,144,87)",
+
+        "sl":
+          "rgb(13,0,129)",
+
+        "sp":
+          "rgb(0,0,255)",
+
+        "ss":
+          "rgb(2,219,0)",
+
+        "sw":
+          "rgb(173,164,254)",
+
+        "th":
+          "rgb(2,219,0)",
+
+        "ti":
+          "rgb(1,129,0)",
+
+        "wl":
+          "rgb(0,0,255)",
+
+        "wp":
+          "rgb(219,205,0)"
+
+      };
+
+
+      return (
+
+        colors[
+          code
+            ? code.toLowerCase()
+            : ""
+        ] ||
+
         "#cccccc"
 
       );
