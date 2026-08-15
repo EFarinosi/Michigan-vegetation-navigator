@@ -32,6 +32,8 @@
 
       font-family: Arial, sans-serif;
 
+      overflow: hidden;
+
     }
 
 
@@ -39,6 +41,22 @@
 
       height: 100%;
       width: 100%;
+
+    }
+
+
+    /* =====================================================
+       MAP ROTATION
+       ===================================================== */
+
+    /*
+     * Leaflet's map pane is rotated rather than the
+     * entire page. This keeps the controls upright.
+     */
+
+    #map .leaflet-map-pane {
+
+      transform-origin: center center;
 
     }
 
@@ -107,6 +125,13 @@
     #currentButton.active {
 
       background: #245c9c;
+
+    }
+
+
+    #directionButton.active {
+
+      background: #7a3e9d;
 
     }
 
@@ -219,6 +244,16 @@
     </button>
 
 
+    <button
+      id="directionButton"
+      onclick="toggleDirection()"
+    >
+
+      Direction OFF
+
+    </button>
+
+
     <div id="status">
 
       GPS not started
@@ -315,6 +350,46 @@
     let gpsHasCentered = false;
 
 
+    /*
+     * Prevent excessively frequent map movement.
+     */
+
+    let lastMapCenterTime = 0;
+
+
+    const gpsCenterInterval = 500;
+
+
+    /* ========================================================
+       DIRECTION / ROTATION VARIABLES
+       ======================================================== */
+
+    let directionEnabled = false;
+
+    let currentHeading = 0;
+
+    let previousGPSPosition = null;
+
+    let lastHeadingUpdateTime = 0;
+
+
+    /*
+     * Minimum speed required before we trust calculated
+     * direction of travel.
+     *
+     * 1.5 m/s ≈ 3.4 mph
+     */
+
+    const minimumHeadingSpeed = 1.5;
+
+
+    /*
+     * Don't update map rotation too frequently.
+     */
+
+    const headingUpdateInterval = 500;
+
+
     /* ========================================================
        VEGETATION VARIABLES
        ======================================================== */
@@ -322,6 +397,8 @@
     let vegetationLayer = null;
 
     let vegetationVisible = false;
+
+    let lastVegetationCenter = null;
 
 
     /* ========================================================
@@ -342,11 +419,6 @@
 
     /*
      * MICHIGAN
-     *
-     * Michigan Natural Features Inventory
-     * Vegetation circa 1800
-     *
-     * 31 historical cover types.
      */
 
     const michiganURL =
@@ -356,10 +428,6 @@
 
     /*
      * ILLINOIS
-     *
-     * University of Illinois / Prairie Research Institute
-     *
-     * Early 1800s Land Cover
      */
 
     const illinoisURL =
@@ -390,22 +458,6 @@
     ) {
 
 
-      /*
-       * Rough geographic boundaries.
-       *
-       * These are intentionally broad.
-       *
-       * The actual vegetation query determines
-       * whether a historical polygon exists.
-       */
-
-
-      /*
-       * Michigan
-       *
-       * Includes both peninsulas.
-       */
-
       const inMichigan =
 
         (
@@ -416,10 +468,6 @@
         );
 
 
-      /*
-       * Illinois
-       */
-
       const inIllinois =
 
         (
@@ -429,15 +477,6 @@
           latitude <= 42.6
         );
 
-
-      /*
-       * IMPORTANT:
-       *
-       * The Michigan and Illinois bounding boxes overlap
-       * slightly around the Chicago / Lake Michigan region.
-       *
-       * Use longitude to resolve the overlap.
-       */
 
       if (
         inMichigan &&
@@ -465,6 +504,515 @@
 
 
     /* ========================================================
+       CALCULATE BEARING
+       ======================================================== */
+
+    function calculateBearing(
+      lat1,
+      lon1,
+      lat2,
+      lon2
+    ) {
+
+
+      const radians =
+
+        Math.PI / 180;
+
+
+      const phi1 =
+        lat1 * radians;
+
+
+      const phi2 =
+        lat2 * radians;
+
+
+      const deltaLon =
+
+        (
+          lon2 -
+          lon1
+        ) * radians;
+
+
+      const y =
+
+        Math.sin(deltaLon) *
+        Math.cos(phi2);
+
+
+      const x =
+
+        Math.cos(phi1) *
+        Math.sin(phi2) -
+
+        Math.sin(phi1) *
+        Math.cos(phi2) *
+        Math.cos(deltaLon);
+
+
+      let bearing =
+
+        Math.atan2(
+          y,
+          x
+        ) / radians;
+
+
+      bearing =
+
+        (
+          bearing + 360
+        ) % 360;
+
+
+      return bearing;
+
+    }
+
+
+    /* ========================================================
+       NORMALIZE ANGLE
+       ======================================================== */
+
+    function normalizeAngle(angle) {
+
+      return (
+
+        (
+          angle + 360
+        ) % 360
+
+      );
+
+    }
+
+
+    /* ========================================================
+       SHORTEST ANGLE DIFFERENCE
+       ======================================================== */
+
+    function shortestAngleDifference(
+      from,
+      to
+    ) {
+
+
+      return (
+
+        (
+          (
+            to -
+            from +
+            540
+          ) % 360
+        ) - 180
+
+      );
+
+    }
+
+
+    /* ========================================================
+       ROTATE MAP
+       ======================================================== */
+
+    function rotateMapToHeading(
+      heading
+    ) {
+
+
+      if (!directionEnabled) {
+
+        return;
+
+      }
+
+
+      /*
+       * We want the direction of travel to point
+       * toward the top of the screen.
+       *
+       * Therefore the map itself rotates opposite
+       * the travel heading.
+       */
+
+      const rotation =
+
+        -heading;
+
+
+      const mapPane =
+
+        document.querySelector(
+          "#map .leaflet-map-pane"
+        );
+
+
+      if (!mapPane) {
+
+        return;
+
+      }
+
+
+      mapPane.style.transform =
+
+        "rotate(" +
+        rotation +
+        "deg)";
+
+    }
+
+
+    /* ========================================================
+       RESET MAP ROTATION
+       ======================================================== */
+
+    function resetMapRotation() {
+
+
+      const mapPane =
+
+        document.querySelector(
+          "#map .leaflet-map-pane"
+        );
+
+
+      if (!mapPane) {
+
+        return;
+
+      }
+
+
+      mapPane.style.transform =
+
+        "rotate(0deg)";
+
+    }
+
+
+    /* ========================================================
+       TOGGLE DIRECTION
+       ======================================================== */
+
+    function toggleDirection() {
+
+
+      directionEnabled =
+
+        !directionEnabled;
+
+
+      const button =
+
+        document.getElementById(
+          "directionButton"
+        );
+
+
+      if (directionEnabled) {
+
+
+        button.innerHTML =
+          "Direction ON";
+
+
+        button.classList.add(
+          "active"
+        );
+
+
+        /*
+         * If we already have a reliable heading,
+         * immediately rotate the map.
+         */
+
+        if (
+          previousGPSPosition &&
+          currentHeading !== null
+        ) {
+
+          rotateMapToHeading(
+            currentHeading
+          );
+
+        }
+
+
+      }
+
+      else {
+
+
+        button.innerHTML =
+          "Direction OFF";
+
+
+        button.classList.remove(
+          "active"
+        );
+
+
+        /*
+         * Return map to north-up orientation.
+         */
+
+        resetMapRotation();
+
+      }
+
+    }
+
+
+    /* ========================================================
+       UPDATE HEADING
+       ======================================================== */
+
+    function updateHeading(
+      position
+    ) {
+
+
+      const latitude =
+
+        position.coords.latitude;
+
+
+      const longitude =
+
+        position.coords.longitude;
+
+
+      const speed =
+
+        position.coords.speed;
+
+
+      const deviceHeading =
+
+        position.coords.heading;
+
+
+      let heading = null;
+
+
+      /*
+       * ----------------------------------------------------
+       * OPTION 1
+       * USE DEVICE-PROVIDED HEADING
+       * ----------------------------------------------------
+       */
+
+      if (
+
+        deviceHeading !== null &&
+        !isNaN(deviceHeading) &&
+        deviceHeading >= 0
+
+      ) {
+
+
+        if (
+
+          speed === null ||
+          speed >= minimumHeadingSpeed
+
+        ) {
+
+          heading =
+            deviceHeading;
+
+        }
+
+      }
+
+
+      /*
+       * ----------------------------------------------------
+       * OPTION 2
+       * CALCULATE HEADING FROM GPS MOVEMENT
+       * ----------------------------------------------------
+       */
+
+      if (
+
+        heading === null &&
+        previousGPSPosition
+
+      ) {
+
+
+        const distance =
+
+          map.distance(
+
+            [
+              previousGPSPosition.latitude,
+              previousGPSPosition.longitude
+            ],
+
+            [
+              latitude,
+              longitude
+            ]
+
+          );
+
+
+        const timeDifference =
+
+          (
+            position.timestamp -
+            previousGPSPosition.timestamp
+          ) / 1000;
+
+
+        let calculatedSpeed = 0;
+
+
+        if (timeDifference > 0) {
+
+          calculatedSpeed =
+
+            distance /
+            timeDifference;
+
+        }
+
+
+        if (
+          calculatedSpeed >=
+          minimumHeadingSpeed
+        ) {
+
+
+          heading =
+
+            calculateBearing(
+
+              previousGPSPosition.latitude,
+
+              previousGPSPosition.longitude,
+
+              latitude,
+
+              longitude
+
+            );
+
+        }
+
+      }
+
+
+      /*
+       * Save current GPS position for
+       * the next heading calculation.
+       */
+
+      previousGPSPosition = {
+
+        latitude:
+          latitude,
+
+        longitude:
+          longitude,
+
+        timestamp:
+          position.timestamp
+
+      };
+
+
+      /*
+       * No reliable heading yet.
+       */
+
+      if (heading === null) {
+
+        return;
+
+      }
+
+
+      const now = Date.now();
+
+
+      if (
+
+        now -
+        lastHeadingUpdateTime <
+        headingUpdateInterval
+
+      ) {
+
+        return;
+
+      }
+
+
+      lastHeadingUpdateTime = now;
+
+
+      /*
+       * Smooth sudden heading changes.
+       */
+
+      if (
+        currentHeading !== null &&
+        !isNaN(currentHeading)
+      ) {
+
+
+        const difference =
+
+          shortestAngleDifference(
+
+            currentHeading,
+
+            heading
+
+          );
+
+
+        /*
+         * Smooth about 30% toward the new heading.
+         */
+
+        currentHeading =
+
+          normalizeAngle(
+
+            currentHeading +
+            difference * 0.30
+
+          );
+
+      }
+
+      else {
+
+        currentHeading =
+          heading;
+
+      }
+
+
+      if (directionEnabled) {
+
+        rotateMapToHeading(
+          currentHeading
+        );
+
+      }
+
+    }
+
+
+    /* ========================================================
        START GPS
        ======================================================== */
 
@@ -483,6 +1031,16 @@
 
 
       gpsHasCentered = false;
+
+      lastMapCenterTime = 0;
+
+      lastVegetationCenter = null;
+
+      previousGPSPosition = null;
+
+      currentHeading = 0;
+
+      lastHeadingUpdateTime = 0;
 
 
       setStatus(
@@ -525,6 +1083,14 @@
               position.coords.accuracy;
 
 
+            const gpsLatLng =
+
+              [
+                latitude,
+                longitude
+              ];
+
+
             /* ----------------------------------------------
                GPS MARKER
                ---------------------------------------------- */
@@ -536,10 +1102,7 @@
 
                 L.circleMarker(
 
-                  [
-                    latitude,
-                    longitude
-                  ],
+                  gpsLatLng,
 
                   {
 
@@ -563,12 +1126,7 @@
 
 
               gpsMarker.setLatLng(
-
-                [
-                  latitude,
-                  longitude
-                ]
-
+                gpsLatLng
               );
 
             }
@@ -585,10 +1143,7 @@
 
                 L.circle(
 
-                  [
-                    latitude,
-                    longitude
-                  ],
+                  gpsLatLng,
 
                   {
 
@@ -610,12 +1165,7 @@
 
 
               gpsAccuracyCircle.setLatLng(
-
-                [
-                  latitude,
-                  longitude
-                ]
-
+                gpsLatLng
               );
 
 
@@ -627,36 +1177,86 @@
 
 
             /* ----------------------------------------------
-               CENTER MAP ONLY ON FIRST GPS FIX
+               UPDATE DIRECTION
                ---------------------------------------------- */
+
+            updateHeading(
+              position
+            );
+
+
+            /* ----------------------------------------------
+               KEEP GPS DOT CENTERED
+               ---------------------------------------------- */
+
+            const now = Date.now();
+
+
+            /*
+             * FIRST GPS FIX
+             */
 
             if (!gpsHasCentered) {
 
 
               map.setView(
 
-                [
-                  latitude,
-                  longitude
-                ],
+                gpsLatLng,
 
-                15
+                15,
+
+                {
+
+                  animate: false
+
+                }
 
               );
 
 
               gpsHasCentered = true;
 
+              lastMapCenterTime = now;
 
-              /*
-               * Load vegetation map if enabled.
-               */
 
               if (vegetationVisible) {
 
                 loadVegetation();
 
               }
+
+            }
+
+
+            /*
+             * SUBSEQUENT GPS FIXES
+             */
+
+            else if (
+
+              now -
+              lastMapCenterTime >=
+              gpsCenterInterval
+
+            ) {
+
+
+              map.setView(
+
+                gpsLatLng,
+
+                map.getZoom(),
+
+                {
+
+                  animate: false
+
+                }
+
+              );
+
+
+              lastMapCenterTime = now;
 
             }
 
@@ -673,6 +1273,9 @@
                 longitude
 
               );
+
+
+            lastState = state;
 
 
             /* ----------------------------------------------
@@ -776,10 +1379,6 @@
         );
 
 
-      /* ----------------------------------------------
-         TURN OFF
-         ---------------------------------------------- */
-
       if (!vegetationVisible) {
 
 
@@ -811,10 +1410,6 @@
       }
 
 
-      /* ----------------------------------------------
-         TURN ON
-         ---------------------------------------------- */
-
       button.innerHTML =
         "Vegetation ON";
 
@@ -829,6 +1424,9 @@
       );
 
 
+      lastVegetationCenter = null;
+
+
       loadVegetation();
 
     }
@@ -840,10 +1438,6 @@
 
     async function loadVegetation() {
 
-
-      /*
-       * Need to be reasonably zoomed in.
-       */
 
       if (map.getZoom() < 10) {
 
@@ -875,11 +1469,6 @@
         );
 
 
-      /*
-       * If the map center isn't in either state,
-       * don't query a dataset.
-       */
-
       if (!state) {
 
 
@@ -893,6 +1482,36 @@
         return;
 
       }
+
+
+      /*
+       * Avoid unnecessary queries.
+       */
+
+      if (lastVegetationCenter) {
+
+
+        const movedDistance =
+
+          map.distance(
+
+            lastVegetationCenter,
+
+            center
+
+          );
+
+
+        if (movedDistance < 250) {
+
+          return;
+
+        }
+
+      }
+
+
+      lastVegetationCenter = center;
 
 
       const bounds =
@@ -922,11 +1541,9 @@
       let outFields;
 
 
-      /*
-       * ----------------------------------------------------
-       * MICHIGAN
-       * ----------------------------------------------------
-       */
+      /* ----------------------------------------------------
+         MICHIGAN
+         ---------------------------------------------------- */
 
       if (state === "Michigan") {
 
@@ -934,13 +1551,6 @@
         url =
           michiganURL;
 
-
-        /*
-         * Michigan service uses its own projection.
-         *
-         * We allow ArcGIS to transform from geographic
-         * coordinates by specifying inSR 4326.
-         */
 
         inSR =
           "4326";
@@ -952,11 +1562,9 @@
       }
 
 
-      /*
-       * ----------------------------------------------------
-       * ILLINOIS
-       * ----------------------------------------------------
-       */
+      /* ----------------------------------------------------
+         ILLINOIS
+         ---------------------------------------------------- */
 
       else {
 
@@ -964,10 +1572,6 @@
         url =
           illinoisURL;
 
-
-        /*
-         * Illinois layer is UTM Zone 16N.
-         */
 
         inSR =
           "4326";
@@ -978,13 +1582,6 @@
 
       }
 
-
-      /*
-       * Query using geographic coordinates.
-       *
-       * ArcGIS will transform the envelope into the
-       * service's native projection.
-       */
 
       const geometry =
 
@@ -1105,10 +1702,6 @@
         }
 
 
-        /*
-         * Remove previous vegetation layer.
-         */
-
         if (vegetationLayer) {
 
           map.removeLayer(
@@ -1118,10 +1711,6 @@
         }
 
 
-        /*
-         * Create Leaflet GeoJSON layer.
-         */
-
         vegetationLayer =
 
           L.geoJSON(
@@ -1129,7 +1718,6 @@
             data,
 
             {
-
 
               style:
 
@@ -1404,10 +1992,6 @@
         );
 
 
-      /*
-       * TURN OFF
-       */
-
       if (!currentVegetationVisible) {
 
 
@@ -1425,10 +2009,6 @@
       }
 
 
-      /*
-       * TURN ON
-       */
-
       button.classList.add(
         "active"
       );
@@ -1437,10 +2017,6 @@
       box.style.display =
         "block";
 
-
-      /*
-       * GPS required.
-       */
 
       if (!gpsMarker) {
 
@@ -1462,10 +2038,6 @@
 
       }
 
-
-      /*
-       * Immediately query current position.
-       */
 
       const position =
         gpsMarker.getLatLng();
@@ -1493,11 +2065,6 @@
     ) {
 
 
-      /*
-       * Determine which historical dataset
-       * applies to the GPS location.
-       */
-
       const state =
 
         getHistoricalState(
@@ -1507,10 +2074,6 @@
 
         );
 
-
-      /*
-       * Don't repeatedly query the same position.
-       */
 
       const positionKey =
 
@@ -1541,10 +2104,6 @@
         positionKey;
 
 
-      /*
-       * Outside our current coverage.
-       */
-
       if (!state) {
 
 
@@ -1571,12 +2130,6 @@
       let outFields;
 
 
-      /*
-       * ----------------------------------------------------
-       * MICHIGAN
-       * ----------------------------------------------------
-       */
-
       if (state === "Michigan") {
 
 
@@ -1590,12 +2143,6 @@
       }
 
 
-      /*
-       * ----------------------------------------------------
-       * ILLINOIS
-       * ----------------------------------------------------
-       */
-
       else {
 
 
@@ -1608,13 +2155,6 @@
 
       }
 
-
-      /*
-       * Create geographic point.
-       *
-       * We send it as EPSG:4326 and let ArcGIS
-       * transform it into the dataset's projection.
-       */
 
       const geometry =
 
@@ -1708,10 +2248,6 @@
         }
 
 
-        /*
-         * Nothing found.
-         */
-
         if (
 
           !data.features ||
@@ -1738,20 +2274,10 @@
         }
 
 
-        /*
-         * Get first matching polygon.
-         */
-
         const properties =
 
           data.features[0].attributes;
 
-
-        /*
-         * ----------------------------------------------------
-         * MICHIGAN RESULT
-         * ----------------------------------------------------
-         */
 
         if (state === "Michigan") {
 
@@ -1801,12 +2327,6 @@
 
         }
 
-
-        /*
-         * ----------------------------------------------------
-         * ILLINOIS RESULT
-         * ----------------------------------------------------
-         */
 
         else {
 
@@ -2400,7 +2920,7 @@
 
             },
 
-            500
+            750
 
           );
 
