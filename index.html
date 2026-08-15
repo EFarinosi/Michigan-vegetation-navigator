@@ -10,9 +10,7 @@
     content="width=device-width, initial-scale=1.0"
   >
 
-  <title>
-    Michigan Vegetation Navigator
-  </title>
+  <title>Michigan Vegetation Navigator</title>
 
 
   <!-- Leaflet -->
@@ -29,9 +27,7 @@
     body {
 
       height: 100%;
-
       margin: 0;
-
       padding: 0;
 
       font-family: Arial, sans-serif;
@@ -42,7 +38,6 @@
     #map {
 
       height: 100%;
-
       width: 100%;
 
     }
@@ -53,9 +48,7 @@
       position: absolute;
 
       top: 10px;
-
       left: 10px;
-
       right: 10px;
 
       z-index: 1000;
@@ -123,6 +116,10 @@
 <body>
 
 
+  <!-- =======================================================
+       CONTROLS
+       ======================================================= -->
+
   <div id="controls">
 
 
@@ -153,6 +150,8 @@
   </div>
 
 
+  <!-- MAP -->
+
   <div id="map"></div>
 
 
@@ -166,11 +165,9 @@
   <script>
 
 
-    /*
-     * =========================================================
-     * MAP
-     * =========================================================
-     */
+    /* ========================================================
+       MAP
+       ======================================================== */
 
     const map = L.map("map").setView(
 
@@ -181,11 +178,9 @@
     );
 
 
-    /*
-     * =========================================================
-     * BASEMAP
-     * =========================================================
-     */
+    /* ========================================================
+       BASEMAP
+       ======================================================== */
 
     L.tileLayer(
 
@@ -203,11 +198,9 @@
     ).addTo(map);
 
 
-    /*
-     * =========================================================
-     * GPS
-     * =========================================================
-     */
+    /* ========================================================
+       GPS VARIABLES
+       ======================================================== */
 
     let gpsMarker = null;
 
@@ -218,20 +211,9 @@
     let gpsHasCentered = false;
 
 
-    /*
-     * =========================================================
-     * VEGETATION
-     * =========================================================
-     *
-     * Official MNFI Michigan Land Cover Circa 1800
-     *
-     * Layer 0
-     */
-
-    const vegetationURL =
-
-      "https://services1.arcgis.com/4ezfu5dIwH83BUNL/ArcGIS/rest/services/Michigan_Land_Cover_Circa_1800/FeatureServer/0";
-
+    /* ========================================================
+       VEGETATION VARIABLES
+       ======================================================== */
 
     let vegetationLayer = null;
 
@@ -239,10 +221,21 @@
 
 
     /*
-     * =========================================================
-     * STATUS MESSAGE
-     * =========================================================
+     * This is the actual Michigan EGLE/MNFI
+     * circa-1800 vegetation layer.
+     *
+     * Layer 6 =
+     * "MNFI Landcover, Circa 1800"
      */
+
+    const vegetationURL =
+
+      "https://www.mcgi.state.mi.us/maps/rest/services/BaseMap/General_Geology/MapServer/6";
+
+
+    /* ========================================================
+       STATUS
+       ======================================================== */
 
     function setStatus(message) {
 
@@ -253,11 +246,9 @@
     }
 
 
-    /*
-     * =========================================================
-     * START GPS
-     * =========================================================
-     */
+    /* ========================================================
+       START GPS
+       ======================================================== */
 
     function startGPS() {
 
@@ -273,6 +264,10 @@
       }
 
 
+      /*
+       * The next GPS fix will center the map.
+       */
+
       gpsHasCentered = false;
 
 
@@ -282,7 +277,7 @@
 
 
       /*
-       * Prevent multiple GPS watches.
+       * Prevent multiple watches.
        */
 
       if (watchID !== null) {
@@ -316,9 +311,9 @@
               position.coords.accuracy;
 
 
-            /*
-             * GPS marker
-             */
+            /* ----------------------------------------------
+               GPS MARKER
+               ---------------------------------------------- */
 
             if (!gpsMarker) {
 
@@ -365,9 +360,9 @@
             }
 
 
-            /*
-             * Accuracy circle
-             */
+            /* ----------------------------------------------
+               ACCURACY CIRCLE
+               ---------------------------------------------- */
 
             if (!gpsAccuracyCircle) {
 
@@ -417,9 +412,9 @@
             }
 
 
-            /*
-             * Center ONLY on first GPS fix.
-             */
+            /* ----------------------------------------------
+               CENTER MAP ONLY ON FIRST FIX
+               ---------------------------------------------- */
 
             if (!gpsHasCentered) {
 
@@ -441,7 +436,7 @@
 
               /*
                * If vegetation is already on,
-               * load the area around the GPS position.
+               * load it around the GPS position.
                */
 
               if (vegetationVisible) {
@@ -453,9 +448,9 @@
             }
 
 
-            /*
-             * Status
-             */
+            /* ----------------------------------------------
+               STATUS
+               ---------------------------------------------- */
 
             setStatus(
 
@@ -508,11 +503,9 @@
     }
 
 
-    /*
-     * =========================================================
-     * TOGGLE VEGETATION
-     * =========================================================
-     */
+    /* ========================================================
+       VEGETATION BUTTON
+       ======================================================== */
 
     function toggleVegetation() {
 
@@ -529,9 +522,9 @@
         );
 
 
-      /*
-       * TURN OFF
-       */
+      /* ----------------------------------------------
+         TURN OFF
+         ---------------------------------------------- */
 
       if (!vegetationVisible) {
 
@@ -566,9 +559,9 @@
       }
 
 
-      /*
-       * TURN ON
-       */
+      /* ----------------------------------------------
+         TURN ON
+         ---------------------------------------------- */
 
       button.innerHTML =
         "Vegetation ON";
@@ -591,22 +584,38 @@
     }
 
 
-    /*
-     * =========================================================
-     * LOAD VEGETATION
-     * =========================================================
-     *
-     * This uses the current map view.
-     *
-     * Therefore it works whether GPS is running
-     * or not.
-     */
+    /* ========================================================
+       LOAD VEGETATION
+       ======================================================== */
 
     async function loadVegetation() {
 
 
       /*
-       * Get current map bounds.
+       * Don't request the whole state.
+       *
+       * At zoom levels below 10, the area is too large
+       * for a useful polygon query.
+       */
+
+      if (map.getZoom() < 10) {
+
+
+        setStatus(
+
+          "Zoom in closer to Michigan to load " +
+          "historical vegetation."
+
+        );
+
+
+        return;
+
+      }
+
+
+      /*
+       * Get the current map extent.
        */
 
       const bounds =
@@ -630,39 +639,22 @@
 
 
       /*
-       * Don't request the entire state when
-       * zoomed way out.
-       */
-
-      if (map.getZoom() < 10) {
-
-
-        setStatus(
-
-          "Zoom in closer to Michigan to load " +
-          "historical vegetation."
-
-        );
-
-
-        return;
-
-      }
-
-
-      /*
-       * ArcGIS geometry envelope.
+       * ArcGIS envelope.
        */
 
       const geometry = JSON.stringify({
 
-        xmin: west,
+        xmin:
+          west,
 
-        ymin: south,
+        ymin:
+          south,
 
-        xmax: east,
+        xmax:
+          east,
 
-        ymax: north,
+        ymax:
+          north,
 
         spatialReference: {
 
@@ -674,11 +666,9 @@
 
 
       /*
-       * Build ArcGIS REST request.
+       * Build query.
        *
-       * IMPORTANT:
-       *
-       * The MNFI FeatureServer supports JSON.
+       * This server explicitly supports GeoJSON.
        */
 
       const params =
@@ -710,7 +700,7 @@
             "4326",
 
           f:
-            "json"
+            "geojson"
 
         });
 
@@ -746,7 +736,7 @@
 
 
         /*
-         * Check for ArcGIS error.
+         * ArcGIS error.
          */
 
         if (data.error) {
@@ -762,7 +752,7 @@
 
 
         /*
-         * Make sure we received features.
+         * Check whether anything was returned.
          */
 
         if (
@@ -785,7 +775,7 @@
 
 
         /*
-         * Remove old layer.
+         * Remove previous layer.
          */
 
         if (vegetationLayer) {
@@ -797,27 +787,22 @@
         }
 
 
-        /*
-         * Convert ArcGIS JSON into
-         * Leaflet GeoJSON.
-         */
-
-        const geojson =
-
-          arcgisToGeoJSON(data);
-
-
-        /*
-         * Create Leaflet layer.
-         */
+        /* ----------------------------------------------
+           CREATE LEAFLET GEOJSON LAYER
+           ---------------------------------------------- */
 
         vegetationLayer =
 
           L.geoJSON(
 
-            geojson,
+            data,
 
             {
+
+
+              /*
+               * POLYGON APPEARANCE
+               */
 
               style:
 
@@ -848,6 +833,10 @@
                 },
 
 
+              /*
+               * POPUP INFORMATION
+               */
+
               onEachFeature:
 
                 function(
@@ -871,7 +860,7 @@
 
                     "<br><br>" +
 
-                    "<strong>Cover type:</strong><br>" +
+                    "<strong>Historical cover type:</strong><br>" +
 
                     (
                       p.COVERTYPE ||
@@ -900,7 +889,7 @@
 
 
                   /*
-                   * Highlight when touched.
+                   * Highlight polygon when touched.
                    */
 
                   layer.on(
@@ -908,6 +897,7 @@
                     "mouseover",
 
                     function(e) {
+
 
                       e.target.setStyle({
 
@@ -930,8 +920,11 @@
 
                     function(e) {
 
+
                       vegetationLayer.resetStyle(
+
                         e.target
+
                       );
 
                     }
@@ -946,27 +939,22 @@
 
 
         /*
-         * Add to map.
+         * Add layer to map.
          */
 
         vegetationLayer.addTo(map);
 
 
         /*
-         * Status.
+         * Success message.
          */
 
         setStatus(
 
-          "GPS " +
-          (gpsMarker ? "active" : "not started") +
-
-          "<br>" +
-
           "Historical vegetation ON<br>" +
 
           data.features.length +
-          " polygons loaded"
+          " vegetation polygons loaded"
 
         );
 
@@ -977,8 +965,10 @@
 
 
         console.error(
+
           "Vegetation loading error:",
           error
+
         );
 
 
@@ -994,144 +984,9 @@
     }
 
 
-    /*
-     * =========================================================
-     * ARC GIS JSON → GEOJSON
-     * =========================================================
-     *
-     * ArcGIS returns:
-     *
-     *   rings
-     *
-     * Leaflet expects:
-     *
-     *   coordinates
-     */
-
-    function arcgisToGeoJSON(
-      data
-    ) {
-
-
-      const features = [];
-
-
-      data.features.forEach(
-
-        function(feature) {
-
-
-          const attributes =
-            feature.attributes || {};
-
-
-          const geometry =
-            feature.geometry;
-
-
-          if (
-            !geometry ||
-            !geometry.rings
-          ) {
-
-            return;
-
-          }
-
-
-          /*
-           * ArcGIS rings are already in
-           * longitude/latitude because we
-           * requested outSR 4326.
-           */
-
-          const coordinates = [];
-
-
-          geometry.rings.forEach(
-
-            function(ring) {
-
-
-              const convertedRing =
-                [];
-
-
-              ring.forEach(
-
-                function(point) {
-
-
-                  convertedRing.push(
-
-                    [
-                      point[0],
-                      point[1]
-                    ]
-
-                  );
-
-                }
-
-              );
-
-
-              coordinates.push(
-                convertedRing
-              );
-
-            }
-
-          );
-
-
-          features.push({
-
-            type:
-              "Feature",
-
-            properties:
-              attributes,
-
-            geometry: {
-
-              type:
-                "Polygon",
-
-              coordinates:
-                coordinates
-
-            }
-
-          });
-
-        }
-
-      );
-
-
-      return {
-
-        type:
-          "FeatureCollection",
-
-        features:
-          features
-
-      };
-
-    }
-
-
-    /*
-     * =========================================================
-     * VEGETATION COLORS
-     * =========================================================
-     *
-     * These follow the colors used by the
-     * Michigan circa-1800 map as closely
-     * as practical.
-     */
+    /* ========================================================
+       VEGETATION COLORS
+       ======================================================== */
 
     function getVegetationColor(
       coverType
@@ -1153,88 +1008,68 @@
           "#a0ba73",
 
 
-        "BLACK ASH SWAMP":
-          "#68bd00",
+        "BLACK ASH-SWAMP":
+          "#667d63",
 
 
-        "BLACK OAK BARREN":
-          "#7fcf00",
-
-
-        "CEDAR SWAMP":
-          "#96e000",
-
-
-        "EXPOSED BEDROCK":
-          "#aae800",
-
-
-        "GRASSLAND":
-          "#bceb00",
+        "CEDAR-SWAMP":
+          "#587b68",
 
 
         "HEMLOCK-WHITE PINE FOREST":
-          "#d0f000",
-
-
-        "HEMLOCK-YELLOW BIRCH FOREST":
-          "#e4f500",
-
-
-        "JACK PINE-RED PINE FOREST":
-          "#f7f300",
-
-
-        "LAKE/RIVER":
-          "#fce700",
-
-
-        "MIXED CONIFER SWAMP":
-          "#fcdc0d",
-
-
-        "MIXED HARDWOOD SWAMP":
-          "#f7d320",
-
-
-        "MIXED OAK FOREST":
-          "#f2c933",
-
-
-        "MIXED OAK SAVANNA":
-          "#f0c648",
-
-
-        "MIXED PINE-OAK FOREST":
-          "#ebbf59",
-
-
-        "MUSKEG/BOG":
-          "#e6bc6a",
-
-
-        "OAK-HICKORY FOREST":
-          "#e0b769",
-
-
-        "OAK/PINE BARRENS":
-          "#d6a854",
-
-
-        "WET PRAIRIE":
-          "#d48d6e",
-
-
-        "WHITE PINE-MIXED HARDWOOD FOREST":
-          "#e3a99a",
+          "#6f9560",
 
 
         "WHITE PINE-RED PINE FOREST":
-          "#f0cdc9",
+          "#557f59",
 
 
-        "WHITE PINE-WHITE OAK FOREST":
-          "#ffffff"
+        "OAK-HICKORY FOREST":
+          "#b28d57",
+
+
+        "OAK-PINE BARRENS":
+          "#c0a05b",
+
+
+        "MIXED OAK FOREST":
+          "#d0a34f",
+
+
+        "MIXED OAK SAVANNA":
+          "#d9b55d",
+
+
+        "MIXED PINE-OAK FOREST":
+          "#b99a55",
+
+
+        "MUSKEG/BOG":
+          "#9eaf78",
+
+
+        "TAMARACK":
+          "#789b73",
+
+
+        "MIXED HARDWOOD SWAMP":
+          "#718d68",
+
+
+        "MIXED CONIFER SWAMP":
+          "#537b68",
+
+
+        "WET PRAIRIE":
+          "#b6b85f",
+
+
+        "GRASSLAND":
+          "#c9bc62",
+
+
+        "SHRUB SWAMP/EMERGENT MARSH":
+          "#8eaa73"
 
       };
 
@@ -1250,14 +1085,9 @@
     }
 
 
-    /*
-     * =========================================================
-     * RELOAD VEGETATION WHEN MAP MOVES
-     * =========================================================
-     *
-     * This is useful once the vegetation layer
-     * is turned on and you pan around.
-     */
+    /* ========================================================
+       RELOAD VEGETATION AFTER MAP MOVES
+       ======================================================== */
 
     let reloadTimer = null;
 
@@ -1275,6 +1105,11 @@
 
         }
 
+
+        /*
+         * Wait half a second before requesting
+         * another batch of polygons.
+         */
 
         clearTimeout(
           reloadTimer
