@@ -12,89 +12,254 @@
 
   <title>Michigan Vegetation Navigator</title>
 
+
+  <!-- Leaflet -->
+
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
   >
 
+
   <style>
 
     html,
     body {
+
       height: 100%;
       margin: 0;
       padding: 0;
+
       font-family: Arial, sans-serif;
+
     }
+
 
     #map {
+
       height: 100%;
       width: 100%;
+
     }
 
+
+    /* =====================================================
+       CONTROLS
+       ===================================================== */
+
     #controls {
+
       position: absolute;
+
       top: 10px;
       left: 10px;
       right: 10px;
+
       z-index: 1000;
+
       background: white;
+
       padding: 12px;
+
       border-radius: 10px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+
+      box-shadow:
+        0 2px 10px rgba(0,0,0,0.25);
+
     }
+
 
     button {
+
       font-size: 16px;
+
       padding: 10px 14px;
+
       margin-right: 6px;
+
+      margin-bottom: 6px;
+
       border: none;
+
       border-radius: 7px;
+
       background: #2c6e49;
+
       color: white;
+
     }
+
 
     button:active {
+
       background: #1f5035;
+
     }
+
 
     #vegetationButton.active {
+
       background: #8b5a2b;
+
     }
 
+
+    #currentButton.active {
+
+      background: #245c9c;
+
+    }
+
+
     #status {
+
       margin-top: 8px;
+
       font-size: 14px;
+
       line-height: 1.4;
+
+    }
+
+
+    /* =====================================================
+       CURRENT VEGETATION BOX
+       ===================================================== */
+
+    #currentVegetation {
+
+      display: none;
+
+      margin-top: 10px;
+
+      padding: 12px;
+
+      border-radius: 8px;
+
+      background: #f3f3f3;
+
+      border-left: 6px solid #2c6e49;
+
+    }
+
+
+    #currentTitle {
+
+      font-size: 13px;
+
+      font-weight: bold;
+
+      color: #555;
+
+      margin-bottom: 4px;
+
+    }
+
+
+    #currentType {
+
+      font-size: 20px;
+
+      font-weight: bold;
+
+      line-height: 1.2;
+
+    }
+
+
+    #currentDetails {
+
+      margin-top: 6px;
+
+      font-size: 13px;
+
+      color: #555;
+
     }
 
   </style>
 
 </head>
 
+
 <body>
+
+
+  <!-- =======================================================
+       CONTROLS
+       ======================================================= -->
 
   <div id="controls">
 
+
     <button onclick="startGPS()">
+
       Start GPS
+
     </button>
+
 
     <button
       id="vegetationButton"
       onclick="toggleVegetation()"
     >
+
       Vegetation OFF
+
     </button>
 
+
+    <button
+      id="currentButton"
+      onclick="toggleCurrentVegetation()"
+    >
+
+      Current Vegetation
+
+    </button>
+
+
     <div id="status">
+
       GPS not started
+
     </div>
+
+
+    <!-- CURRENT VEGETATION DISPLAY -->
+
+    <div id="currentVegetation">
+
+      <div id="currentTitle">
+
+        CIRCA-1800 VEGETATION AT YOUR LOCATION
+
+      </div>
+
+
+      <div id="currentType">
+
+        Searching...
+
+      </div>
+
+
+      <div id="currentDetails">
+
+      </div>
+
+    </div>
+
 
   </div>
 
+
+  <!-- MAP -->
+
   <div id="map"></div>
 
+
+  <!-- Leaflet -->
 
   <script
     src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
@@ -104,39 +269,42 @@
   <script>
 
 
-    /*
-     * =========================================================
-     * MAP
-     * =========================================================
-     */
+    /* ========================================================
+       MAP
+       ======================================================== */
 
     const map = L.map("map").setView(
+
       [44.5, -84.5],
+
       7
+
     );
 
 
-    /*
-     * =========================================================
-     * BASEMAP
-     * =========================================================
-     */
+    /* ========================================================
+       BASEMAP
+       ======================================================== */
 
     L.tileLayer(
+
       "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+
       {
+
         maxZoom: 19,
+
         attribution:
           "&copy; OpenStreetMap contributors"
+
       }
+
     ).addTo(map);
 
 
-    /*
-     * =========================================================
-     * GPS
-     * =========================================================
-     */
+    /* ========================================================
+       GPS VARIABLES
+       ======================================================== */
 
     let gpsMarker = null;
 
@@ -147,28 +315,38 @@
     let gpsHasCentered = false;
 
 
-    /*
-     * =========================================================
-     * VEGETATION
-     * =========================================================
-     *
-     * Official MNFI Landcover, Circa 1800
-     */
-
-    const vegetationURL =
-      "https://www.mcgi.state.mi.us/maps/rest/services/BaseMap/General_Geology/MapServer/6";
-
+    /* ========================================================
+       VEGETATION VARIABLES
+       ======================================================== */
 
     let vegetationLayer = null;
 
     let vegetationVisible = false;
 
 
+    /* ========================================================
+       CURRENT VEGETATION VARIABLES
+       ======================================================== */
+
+    let currentVegetationVisible = false;
+
+    let currentVegetationTimer = null;
+
+    let lastVegetationCode = null;
+
+
     /*
-     * =========================================================
-     * STATUS
-     * =========================================================
+     * Official MNFI circa-1800 vegetation layer.
      */
+
+    const vegetationURL =
+
+      "https://www.mcgi.state.mi.us/maps/rest/services/BaseMap/General_Geology/MapServer/6";
+
+
+    /* ========================================================
+       STATUS
+       ======================================================== */
 
     function setStatus(message) {
 
@@ -179,13 +357,12 @@
     }
 
 
-    /*
-     * =========================================================
-     * START GPS
-     * =========================================================
-     */
+    /* ========================================================
+       START GPS
+       ======================================================== */
 
     function startGPS() {
+
 
       if (!navigator.geolocation) {
 
@@ -194,6 +371,7 @@
         );
 
         return;
+
       }
 
 
@@ -205,6 +383,10 @@
       );
 
 
+      /*
+       * Prevent duplicate GPS watches.
+       */
+
       if (watchID !== null) {
 
         navigator.geolocation.clearWatch(
@@ -215,71 +397,120 @@
 
 
       watchID =
+
         navigator.geolocation.watchPosition(
 
           function(position) {
 
+
             const latitude =
+
               position.coords.latitude;
 
+
             const longitude =
+
               position.coords.longitude;
 
+
             const accuracy =
+
               position.coords.accuracy;
 
 
-            /*
-             * GPS marker
-             */
+            /* ----------------------------------------------
+               GPS MARKER
+               ---------------------------------------------- */
 
             if (!gpsMarker) {
 
+
               gpsMarker =
+
                 L.circleMarker(
-                  [latitude, longitude],
+
+                  [
+                    latitude,
+                    longitude
+                  ],
+
                   {
+
                     radius: 9,
+
                     color: "white",
+
                     weight: 3,
+
                     fillColor: "#0077ff",
+
                     fillOpacity: 1
+
                   }
+
                 ).addTo(map);
 
             }
+
             else {
 
+
               gpsMarker.setLatLng(
-                [latitude, longitude]
+
+                [
+                  latitude,
+                  longitude
+                ]
+
               );
 
             }
 
 
-            /*
-             * Accuracy circle
-             */
+            /* ----------------------------------------------
+               ACCURACY CIRCLE
+               ---------------------------------------------- */
 
             if (!gpsAccuracyCircle) {
 
+
               gpsAccuracyCircle =
+
                 L.circle(
-                  [latitude, longitude],
+
+                  [
+                    latitude,
+                    longitude
+                  ],
+
                   {
+
                     radius: accuracy,
+
                     color: "#0077ff",
+
                     fillOpacity: 0.08,
+
                     weight: 1
+
                   }
+
                 ).addTo(map);
 
             }
+
             else {
 
+
               gpsAccuracyCircle.setLatLng(
-                [latitude, longitude]
+
+                [
+                  latitude,
+                  longitude
+                ]
+
               );
+
 
               gpsAccuracyCircle.setRadius(
                 accuracy
@@ -288,25 +519,44 @@
             }
 
 
-            /*
-             * Center ONLY on first GPS fix.
-             */
+            /* ----------------------------------------------
+               CENTER MAP ONLY ON FIRST GPS FIX
+               ---------------------------------------------- */
 
             if (!gpsHasCentered) {
 
+
               map.setView(
-                [latitude, longitude],
+
+                [
+                  latitude,
+                  longitude
+                ],
+
                 15
+
               );
 
+
               gpsHasCentered = true;
+
+
+              /*
+               * Load vegetation map if enabled.
+               */
+
+              if (vegetationVisible) {
+
+                loadVegetation();
+
+              }
 
             }
 
 
-            /*
-             * Status
-             */
+            /* ----------------------------------------------
+               STATUS
+               ---------------------------------------------- */
 
             setStatus(
 
@@ -328,23 +578,44 @@
 
             );
 
+
+            /* ----------------------------------------------
+               CURRENT VEGETATION
+               ---------------------------------------------- */
+
+            if (currentVegetationVisible) {
+
+              updateCurrentVegetation(
+                latitude,
+                longitude
+              );
+
+            }
+
           },
 
 
           function(error) {
 
+
             setStatus(
+
               "GPS error: " +
               error.message
+
             );
 
           },
 
 
           {
+
             enableHighAccuracy: true,
+
             maximumAge: 1000,
+
             timeout: 15000
+
           }
 
         );
@@ -352,32 +623,35 @@
     }
 
 
-    /*
-     * =========================================================
-     * TOGGLE VEGETATION
-     * =========================================================
-     */
+    /* ========================================================
+       VEGETATION MAP TOGGLE
+       ======================================================== */
 
     function toggleVegetation() {
 
+
       vegetationVisible =
+
         !vegetationVisible;
 
 
       const button =
+
         document.getElementById(
           "vegetationButton"
         );
 
 
-      /*
-       * TURN OFF
-       */
+      /* ----------------------------------------------
+         TURN OFF
+         ---------------------------------------------- */
 
       if (!vegetationVisible) {
 
+
         button.innerHTML =
           "Vegetation OFF";
+
 
         button.classList.remove(
           "active"
@@ -397,17 +671,19 @@
           "Historical vegetation OFF"
         );
 
+
         return;
 
       }
 
 
-      /*
-       * TURN ON
-       */
+      /* ----------------------------------------------
+         TURN ON
+         ---------------------------------------------- */
 
       button.innerHTML =
         "Vegetation ON";
+
 
       button.classList.add(
         "active"
@@ -424,28 +700,24 @@
     }
 
 
-    /*
-     * =========================================================
-     * CONVERT LAT/LON TO WEB MERCATOR
-     * =========================================================
-     *
-     * The MNFI layer uses WKID 102113 / Web Mercator.
-     *
-     * Leaflet gives us latitude/longitude.
-     *
-     * This converts between them.
-     */
+    /* ========================================================
+       LAT/LON → WEB MERCATOR
+       ======================================================== */
 
     function lonLatToWebMercator(
+
       longitude,
       latitude
+
     ) {
+
 
       const radius =
         6378137;
 
 
       const x =
+
         radius *
         longitude *
         Math.PI /
@@ -453,75 +725,83 @@
 
 
       let y =
+
         latitude *
         Math.PI /
         180;
 
 
       /*
-       * Prevent mathematical problems
-       * near the poles.
+       * Prevent mathematical problems near poles.
        */
 
       if (y > 1.4844222297453322) {
 
-        y = 1.4844222297453322;
+        y =
+          1.4844222297453322;
 
       }
 
+
       if (y < -1.4844222297453322) {
 
-        y = -1.4844222297453322;
+        y =
+          -1.4844222297453322;
 
       }
 
 
       y =
+
         radius *
         Math.log(
+
           Math.tan(
+
             Math.PI / 4 +
             y / 2
+
           )
+
         );
 
 
       return {
+
         x: x,
+
         y: y
+
       };
 
     }
 
 
-    /*
-     * =========================================================
-     * LOAD VEGETATION
-     * =========================================================
-     */
+    /* ========================================================
+       LOAD VEGETATION MAP
+       ======================================================== */
 
     async function loadVegetation() {
 
 
       /*
-       * We need to be zoomed in enough
-       * to request a reasonable number of polygons.
+       * Need to be reasonably zoomed in.
        */
 
       if (map.getZoom() < 10) {
 
+
         setStatus(
+
           "Zoom in closer to Michigan to load historical vegetation."
+
         );
+
 
         return;
 
       }
 
-
-      /*
-       * Get current map bounds.
-       */
 
       const bounds =
         map.getBounds();
@@ -530,40 +810,49 @@
       const west =
         bounds.getWest();
 
+
       const south =
         bounds.getSouth();
 
+
       const east =
         bounds.getEast();
+
 
       const north =
         bounds.getNorth();
 
 
       /*
-       * Convert the four corners to Web Mercator.
+       * Convert map bounds to Web Mercator.
        */
 
       const southwest =
+
         lonLatToWebMercator(
+
           west,
           south
+
         );
 
 
       const northeast =
+
         lonLatToWebMercator(
+
           east,
           north
+
         );
 
 
       /*
-       * Create ArcGIS geometry envelope
-       * in WKID 102113.
+       * ArcGIS geometry envelope.
        */
 
       const geometry =
+
         JSON.stringify({
 
           xmin:
@@ -579,17 +868,20 @@
             northeast.y,
 
           spatialReference: {
+
             wkid: 102113
+
           }
 
         });
 
 
       /*
-       * Build ArcGIS request.
+       * ArcGIS query.
        */
 
       const params =
+
         new URLSearchParams({
 
           where:
@@ -624,7 +916,9 @@
 
       try {
 
+
         const response =
+
           await fetch(
 
             vegetationURL +
@@ -637,8 +931,10 @@
         if (!response.ok) {
 
           throw new Error(
+
             "Server returned HTTP " +
             response.status
+
           );
 
         }
@@ -648,32 +944,30 @@
           await response.json();
 
 
-        /*
-         * ArcGIS error.
-         */
-
         if (data.error) {
 
           throw new Error(
+
             data.error.message ||
             "ArcGIS returned an error."
+
           );
 
         }
 
-
-        /*
-         * No features.
-         */
 
         if (
           !data.features ||
           data.features.length === 0
         ) {
 
+
           setStatus(
+
             "No historical vegetation polygons were returned."
+
           );
+
 
           return;
 
@@ -681,7 +975,7 @@
 
 
         /*
-         * Remove old layer.
+         * Remove previous vegetation layer.
          */
 
         if (vegetationLayer) {
@@ -694,16 +988,22 @@
 
 
         /*
-         * Create Leaflet layer.
+         * Create Leaflet GeoJSON layer.
          */
 
         vegetationLayer =
+
           L.geoJSON(
+
             data,
+
             {
 
+
               style:
+
                 function(feature) {
+
 
                   return {
 
@@ -714,8 +1014,11 @@
                       1,
 
                     fillColor:
+
                       getVegetationColor(
+
                         feature.properties.COVERTYPE
+
                       ),
 
                     fillOpacity:
@@ -727,7 +1030,12 @@
 
 
               onEachFeature:
-                function(feature, layer) {
+
+                function(
+                  feature,
+                  layer
+                ) {
+
 
                   const p =
                     feature.properties;
@@ -736,7 +1044,9 @@
                   layer.bindPopup(
 
                     "<strong>" +
+
                     "Michigan Vegetation Circa 1800" +
+
                     "</strong>" +
 
                     "<br><br>" +
@@ -770,8 +1080,11 @@
 
 
                   layer.on(
+
                     "mouseover",
+
                     function(e) {
+
 
                       e.target.setStyle({
 
@@ -784,23 +1097,31 @@
                       });
 
                     }
+
                   );
 
 
                   layer.on(
+
                     "mouseout",
+
                     function(e) {
 
+
                       vegetationLayer.resetStyle(
+
                         e.target
+
                       );
 
                     }
+
                   );
 
                 }
 
             }
+
           );
 
 
@@ -808,10 +1129,6 @@
           map
         );
 
-
-        /*
-         * Success.
-         */
 
         setStatus(
 
@@ -827,9 +1144,12 @@
 
       catch(error) {
 
+
         console.error(
+
           "Vegetation loading error:",
           error
+
         );
 
 
@@ -845,110 +1165,549 @@
     }
 
 
-    /*
-     * =========================================================
-     * VEGETATION COLORS
-     * =========================================================
-     *
-     * These now match the actual colors reported
-     * by the Michigan service.
-     */
+    /* ========================================================
+       CURRENT VEGETATION TOGGLE
+       ======================================================== */
+
+    function toggleCurrentVegetation() {
+
+
+      currentVegetationVisible =
+
+        !currentVegetationVisible;
+
+
+      const button =
+
+        document.getElementById(
+          "currentButton"
+        );
+
+
+      const box =
+
+        document.getElementById(
+          "currentVegetation"
+        );
+
+
+      /*
+       * TURN OFF
+       */
+
+      if (!currentVegetationVisible) {
+
+
+        button.classList.remove(
+          "active"
+        );
+
+
+        box.style.display =
+          "none";
+
+
+        if (currentVegetationTimer) {
+
+          clearInterval(
+            currentVegetationTimer
+          );
+
+        }
+
+
+        return;
+
+      }
+
+
+      /*
+       * TURN ON
+       */
+
+      button.classList.add(
+        "active"
+      );
+
+
+      box.style.display =
+        "block";
+
+
+      /*
+       * GPS required.
+       */
+
+      if (!gpsMarker) {
+
+
+        document.getElementById(
+          "currentType"
+        ).innerHTML =
+
+          "Start GPS first";
+
+
+        document.getElementById(
+          "currentDetails"
+        ).innerHTML =
+
+          "Your current location is needed to identify the historical vegetation.";
+
+        return;
+
+      }
+
+
+      /*
+       * Immediately query current position.
+       */
+
+      const position =
+        gpsMarker.getLatLng();
+
+
+      updateCurrentVegetation(
+
+        position.lat,
+        position.lng
+
+      );
+
+    }
+
+
+    /* ========================================================
+       UPDATE CURRENT VEGETATION
+       ======================================================== */
+
+    async function updateCurrentVegetation(
+
+      latitude,
+      longitude
+
+    ) {
+
+
+      /*
+       * Don't send repeated queries for
+       * essentially the same location.
+       */
+
+      const positionKey =
+
+        latitude.toFixed(5) +
+        "," +
+        longitude.toFixed(5);
+
+
+      if (
+
+        positionKey ===
+        lastVegetationCode
+
+      ) {
+
+        return;
+
+      }
+
+
+      lastVegetationCode =
+        positionKey;
+
+
+      /*
+       * Convert GPS position to Web Mercator.
+       */
+
+      const point =
+
+        lonLatToWebMercator(
+
+          longitude,
+          latitude
+
+        );
+
+
+      /*
+       * Create point geometry.
+       */
+
+      const geometry =
+
+        JSON.stringify({
+
+          x:
+            point.x,
+
+          y:
+            point.y,
+
+          spatialReference: {
+
+            wkid: 102113
+
+          }
+
+        });
+
+
+      /*
+       * Query the polygon containing
+       * the GPS point.
+       */
+
+      const params =
+
+        new URLSearchParams({
+
+          where:
+            "1=1",
+
+          geometry:
+            geometry,
+
+          geometryType:
+            "esriGeometryPoint",
+
+          inSR:
+            "102113",
+
+          spatialRel:
+            "esriSpatialRelIntersects",
+
+          outFields:
+            "VEGCODE,LEGCODE,COVERTYPE,CNTY_NAME",
+
+          returnGeometry:
+            "false",
+
+          f:
+            "json"
+
+        });
+
+
+      try {
+
+
+        const response =
+
+          await fetch(
+
+            vegetationURL +
+            "/query?" +
+            params.toString()
+
+          );
+
+
+        if (!response.ok) {
+
+          throw new Error(
+
+            "Server returned HTTP " +
+            response.status
+
+          );
+
+        }
+
+
+        const data =
+          await response.json();
+
+
+        if (data.error) {
+
+          throw new Error(
+
+            data.error.message ||
+            "ArcGIS returned an error."
+
+          );
+
+        }
+
+
+        /*
+         * Nothing found.
+         */
+
+        if (
+
+          !data.features ||
+          data.features.length === 0
+
+        ) {
+
+
+          document.getElementById(
+            "currentType"
+          ).innerHTML =
+
+            "No mapped vegetation";
+
+
+          document.getElementById(
+            "currentDetails"
+          ).innerHTML =
+
+            "This location does not fall within a mapped MNFI circa-1800 vegetation polygon.";
+
+          return;
+
+        }
+
+
+        /*
+         * Get first matching polygon.
+         */
+
+        const properties =
+
+          data.features[0].attributes;
+
+
+        const coverType =
+
+          properties.COVERTYPE ||
+          "Unknown";
+
+
+        const vegCode =
+
+          properties.VEGCODE ||
+          "Unknown";
+
+
+        const county =
+
+          properties.CNTY_NAME ||
+          "Unknown";
+
+
+        /*
+         * Display vegetation.
+         */
+
+        document.getElementById(
+          "currentType"
+        ).innerHTML =
+
+          formatVegetationName(
+            coverType
+          );
+
+
+        document.getElementById(
+          "currentDetails"
+        ).innerHTML =
+
+          "Vegetation code: " +
+          vegCode +
+
+          "<br>" +
+
+          "County: " +
+          county;
+
+
+      }
+
+
+      catch(error) {
+
+
+        console.error(
+
+          "Current vegetation error:",
+          error
+
+        );
+
+
+        document.getElementById(
+          "currentType"
+        ).innerHTML =
+
+          "Unable to identify vegetation";
+
+
+        document.getElementById(
+          "currentDetails"
+        ).innerHTML =
+
+          error.message;
+
+      }
+
+    }
+
+
+    /* ========================================================
+       FORMAT VEGETATION NAME
+       ======================================================== */
+
+    function formatVegetationName(
+      name
+    ) {
+
+
+      if (!name) {
+
+        return "Unknown";
+
+      }
+
+
+      return name
+        .toLowerCase()
+        .replace(
+          /\b\w/g,
+          function(letter) {
+
+            return letter.toUpperCase();
+
+          }
+        );
+
+    }
+
+
+    /* ========================================================
+       VEGETATION COLORS
+       ======================================================== */
 
     function getVegetationColor(
       coverType
     ) {
 
+
       const colors = {
+
 
         "ASPEN-BIRCH FOREST":
           "rgb(127,163,98)",
 
+
         "BEECH-SUGAR MAPLE FOREST":
           "rgb(143,173,106)",
+
 
         "BEECH-SUGAR MAPLE-HEMLOCK FOREST":
           "rgb(160,186,115)",
 
+
         "BLACK ASH SWAMP":
           "rgb(179,199,125)",
+
 
         "BLACK OAK BARREN":
           "rgb(195,209,134)",
 
+
         "CEDAR SWAMP":
           "rgb(214,222,146)",
+
 
         "EXPOSED BEDROCK":
           "rgb(232,232,155)",
 
+
         "GRASSLAND":
           "rgb(242,237,162)",
+
 
         "HEMLOCK-WHITE PINE FOREST":
           "rgb(242,234,160)",
 
+
         "HEMLOCK-YELLOW BIRCH FOREST":
           "rgb(242,231,155)",
+
 
         "JACK PINE-RED PINE FOREST":
           "rgb(242,226,153)",
 
+
         "LAKE/RIVER":
           "rgb(242,222,148)",
+
 
         "MIXED CONIFER SWAMP":
           "rgb(242,217,143)",
 
+
         "MIXED HARDWOOD SWAMP":
           "rgb(242,213,141)",
+
 
         "MIXED OAK FOREST":
           "rgb(242,208,136)",
 
+
         "MIXED OAK SAVANNA":
           "rgb(240,201,134)",
+
 
         "MIXED PINE-OAK FOREST":
           "rgb(232,190,132)",
 
+
         "MUSKEG/BOG":
           "rgb(227,181,132)",
+
 
         "OAK-HICKORY FOREST":
           "rgb(219,173,132)",
 
+
         "OAK/PINE BARRENS":
           "rgb(214,165,131)",
+
 
         "PINE BARRENS":
           "rgb(207,156,128)",
 
+
         "SAND DUNE":
           "rgb(201,149,127)",
+
 
         "SHRUB SWAMP/EMERGENT MARSH":
           "rgb(194,140,124)",
 
+
         "SPRUCE-FIR-CEDAR FOREST":
           "rgb(201,148,137)",
+
 
         "SUGAR MAPLE-BASSWOOD FOREST":
           "rgb(212,158,155)",
 
+
         "SUGAR MAPLE-HEMLOCK FOREST":
           "rgb(219,171,174)",
+
 
         "SUGAR MAPLE-YELLOW BIRCH FOREST":
           "rgb(227,184,192)",
 
+
         "WET PRAIRIE":
           "rgb(235,197,210)",
+
 
         "WHITE PINE-MIXED HARDWOOD FOREST":
           "rgb(240,211,225)",
 
+
         "WHITE PINE-RED PINE FOREST":
           "rgb(247,228,242)",
+
 
         "WHITE PINE-WHITE OAK FOREST":
           "rgb(255,242,255)"
@@ -966,18 +1725,19 @@
     }
 
 
-    /*
-     * =========================================================
-     * RELOAD WHEN MAP MOVES
-     * =========================================================
-     */
+    /* ========================================================
+       RELOAD VEGETATION MAP WHEN MAP MOVES
+       ======================================================== */
 
     let reloadTimer = null;
 
 
     map.on(
+
       "moveend",
+
       function() {
+
 
         if (!vegetationVisible) {
 
@@ -994,15 +1754,19 @@
         reloadTimer =
 
           setTimeout(
+
             function() {
 
               loadVegetation();
 
             },
+
             500
+
           );
 
       }
+
     );
 
 
