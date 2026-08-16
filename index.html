@@ -143,6 +143,34 @@
 
 
     /* =====================================================
+       GPS DETAILS BUTTON
+       ===================================================== */
+
+    #gpsDetailsButton {
+
+      display: none;
+
+      background: #555;
+
+      font-size: 12px;
+
+      padding: 5px 8px;
+
+      margin-top: 2px;
+
+      margin-bottom: 3px;
+
+    }
+
+
+    #gpsDetailsButton.active {
+
+      background: #333;
+
+    }
+
+
+    /* =====================================================
        STATUS
        ===================================================== */
 
@@ -250,6 +278,15 @@
       }
 
 
+      #gpsDetailsButton {
+
+        font-size: 11px;
+
+        padding: 5px 7px;
+
+      }
+
+
       #status {
 
         font-size: 11px;
@@ -342,6 +379,18 @@
     >
 
       Direction OFF
+
+    </button>
+
+
+    <!-- GPS DETAILS BUTTON -->
+
+    <button
+      id="gpsDetailsButton"
+      onclick="toggleGPSDetails()"
+    >
+
+      GPS Details
 
     </button>
 
@@ -443,6 +492,18 @@
 
 
     /*
+     * GPS diagnostic information.
+     *
+     * The information is still continuously updated,
+     * but is hidden from the normal interface.
+     */
+
+    let gpsDetailsVisible = false;
+
+    let latestGPSData = null;
+
+
+    /*
      * Prevent excessively frequent map movement.
      */
 
@@ -535,6 +596,155 @@
       document.getElementById(
         "status"
       ).innerHTML = message;
+
+    }
+
+
+    /* ========================================================
+       GPS DETAILS TOGGLE
+       ======================================================== */
+
+    function toggleGPSDetails() {
+
+      gpsDetailsVisible =
+
+        !gpsDetailsVisible;
+
+
+      const button =
+
+        document.getElementById(
+          "gpsDetailsButton"
+        );
+
+
+      if (gpsDetailsVisible) {
+
+
+        button.innerHTML =
+          "Hide GPS Details";
+
+
+        button.classList.add(
+          "active"
+        );
+
+
+        displayGPSDetails();
+
+      }
+
+      else {
+
+
+        button.innerHTML =
+          "GPS Details";
+
+
+        button.classList.remove(
+          "active"
+        );
+
+
+        displayGPSSummary();
+
+      }
+
+    }
+
+
+    /* ========================================================
+       DISPLAY GPS SUMMARY
+       ======================================================== */
+
+    function displayGPSSummary() {
+
+
+      if (!latestGPSData) {
+
+        setStatus(
+          "GPS not started"
+        );
+
+        return;
+
+      }
+
+
+      const stateText =
+
+        latestGPSData.state ||
+
+        "Outside current historical coverage";
+
+
+      setStatus(
+
+        "GPS active<br>" +
+
+        "Historical dataset: " +
+
+        stateText
+
+      );
+
+    }
+
+
+    /* ========================================================
+       DISPLAY GPS DETAILS
+       ======================================================== */
+
+    function displayGPSDetails() {
+
+
+      if (!latestGPSData) {
+
+        return;
+
+      }
+
+
+      const data =
+        latestGPSData;
+
+
+      const stateText =
+
+        data.state ||
+
+        "Outside current historical coverage";
+
+
+      setStatus(
+
+        "GPS active<br>" +
+
+        "Latitude: " +
+
+        data.latitude.toFixed(6) +
+
+        "<br>" +
+
+        "Longitude: " +
+
+        data.longitude.toFixed(6) +
+
+        "<br>" +
+
+        "Accuracy: approximately " +
+
+        Math.round(data.accuracy) +
+
+        " meters" +
+
+        "<br>" +
+
+        "Historical dataset: " +
+
+        stateText
+
+      );
 
     }
 
@@ -1134,6 +1344,36 @@
       lastHeadingUpdateTime = 0;
 
 
+      /*
+       * Start each GPS session with the diagnostic
+       * display collapsed.
+       */
+
+      gpsDetailsVisible = false;
+
+      latestGPSData = null;
+
+
+      const gpsDetailsButton =
+
+        document.getElementById(
+          "gpsDetailsButton"
+        );
+
+
+      gpsDetailsButton.style.display =
+        "none";
+
+
+      gpsDetailsButton.innerHTML =
+        "GPS Details";
+
+
+      gpsDetailsButton.classList.remove(
+        "active"
+      );
+
+
       setStatus(
         "Waiting for GPS location..."
       );
@@ -1370,39 +1610,57 @@
 
 
             /* ----------------------------------------------
+               STORE GPS DIAGNOSTIC INFORMATION
+               ---------------------------------------------- */
+
+            latestGPSData = {
+
+              latitude:
+                latitude,
+
+              longitude:
+                longitude,
+
+              accuracy:
+                accuracy,
+
+              state:
+                state
+
+            };
+
+
+            /*
+             * GPS Details becomes available after
+             * the first valid GPS fix.
+             */
+
+            const gpsDetailsButton =
+
+              document.getElementById(
+                "gpsDetailsButton"
+              );
+
+
+            gpsDetailsButton.style.display =
+              "inline-block";
+
+
+            /* ----------------------------------------------
                STATUS
                ---------------------------------------------- */
 
-            let stateText =
+            if (gpsDetailsVisible) {
 
-              state ||
-              "Outside current historical coverage";
+              displayGPSDetails();
 
+            }
 
-            setStatus(
+            else {
 
-              "GPS active<br>" +
+              displayGPSSummary();
 
-              "Latitude: " +
-              latitude.toFixed(6) +
-
-              "<br>" +
-
-              "Longitude: " +
-              longitude.toFixed(6) +
-
-              "<br>" +
-
-              "Accuracy: approximately " +
-              Math.round(accuracy) +
-              " meters" +
-
-              "<br>" +
-
-              "Historical dataset: " +
-              stateText
-
-            );
+            }
 
 
             /* ----------------------------------------------
@@ -1425,6 +1683,12 @@
 
           function(error) {
 
+
+            /*
+             * GPS errors remain visible automatically.
+             * This makes troubleshooting possible even
+             * when GPS Details is collapsed.
+             */
 
             setStatus(
 
