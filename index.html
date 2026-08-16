@@ -383,8 +383,6 @@
     </button>
 
 
-    <!-- GPS DETAILS BUTTON -->
-
     <button
       id="gpsDetailsButton"
       onclick="toggleGPSDetails()"
@@ -490,22 +488,9 @@
 
     let gpsHasCentered = false;
 
-
-    /*
-     * GPS diagnostic information.
-     *
-     * The information is still continuously updated,
-     * but is hidden from the normal interface.
-     */
-
     let gpsDetailsVisible = false;
 
     let latestGPSData = null;
-
-
-    /*
-     * Prevent excessively frequent map movement.
-     */
 
     let lastMapCenterTime = 0;
 
@@ -524,20 +509,7 @@
 
     let lastHeadingUpdateTime = 0;
 
-
-    /*
-     * Minimum speed required before we trust calculated
-     * direction of travel.
-     *
-     * 1.5 m/s ≈ 3.4 mph
-     */
-
     const minimumHeadingSpeed = 1.5;
-
-
-    /*
-     * Don't update map rotation too frequently.
-     */
 
     const headingUpdateInterval = 500;
 
@@ -571,11 +543,14 @@
 
     /*
      * MICHIGAN
+     *
+     * Michigan-hosted EGLE/MNFI circa-1800 land-cover
+     * FeatureServer.
      */
 
     const michiganURL =
 
-      "https://services1.arcgis.com/4ezfu5dIwH83BUNL/ArcGIS/rest/services/Michigan_Land_Cover_Circa_1800/FeatureServer/0";
+      "https://gisp.mcgi.state.mi.us/arcgis/rest/services/EGLE/LandCoverType_1800/FeatureServer/0";
 
 
     /*
@@ -607,12 +582,9 @@
     function toggleGPSDetails() {
 
       gpsDetailsVisible =
-
         !gpsDetailsVisible;
 
-
       const button =
-
         document.getElementById(
           "gpsDetailsButton"
         );
@@ -620,15 +592,12 @@
 
       if (gpsDetailsVisible) {
 
-
         button.innerHTML =
           "Hide GPS Details";
-
 
         button.classList.add(
           "active"
         );
-
 
         displayGPSDetails();
 
@@ -636,15 +605,12 @@
 
       else {
 
-
         button.innerHTML =
           "GPS Details";
-
 
         button.classList.remove(
           "active"
         );
-
 
         displayGPSSummary();
 
@@ -659,7 +625,6 @@
 
     function displayGPSSummary() {
 
-
       if (!latestGPSData) {
 
         setStatus(
@@ -672,9 +637,7 @@
 
 
       const stateText =
-
         latestGPSData.state ||
-
         "Outside current historical coverage";
 
 
@@ -697,7 +660,6 @@
 
     function displayGPSDetails() {
 
-
       if (!latestGPSData) {
 
         return;
@@ -710,9 +672,7 @@
 
 
       const stateText =
-
         data.state ||
-
         "Outside current historical coverage";
 
 
@@ -721,27 +681,22 @@
         "GPS active<br>" +
 
         "Latitude: " +
-
         data.latitude.toFixed(6) +
 
         "<br>" +
 
         "Longitude: " +
-
         data.longitude.toFixed(6) +
 
         "<br>" +
 
         "Accuracy: approximately " +
-
         Math.round(data.accuracy) +
-
         " meters" +
 
         "<br>" +
 
         "Historical dataset: " +
-
         stateText
 
       );
@@ -757,7 +712,6 @@
       latitude,
       longitude
     ) {
-
 
       const inMichigan =
 
@@ -778,6 +732,11 @@
           latitude <= 42.6
         );
 
+
+      /*
+       * Keep the Michigan / Illinois overlap from
+       * incorrectly assigning the Chicago area to Michigan.
+       */
 
       if (
         inMichigan &&
@@ -815,36 +774,23 @@
       lon2
     ) {
 
-
       const radians =
-
         Math.PI / 180;
-
 
       const phi1 =
         lat1 * radians;
 
-
       const phi2 =
         lat2 * radians;
 
-
       const deltaLon =
-
-        (
-          lon2 -
-          lon1
-        ) * radians;
-
+        (lon2 - lon1) * radians;
 
       const y =
-
         Math.sin(deltaLon) *
         Math.cos(phi2);
 
-
       const x =
-
         Math.cos(phi1) *
         Math.sin(phi2) -
 
@@ -854,18 +800,11 @@
 
 
       let bearing =
-
-        Math.atan2(
-          y,
-          x
-        ) / radians;
+        Math.atan2(y, x) / radians;
 
 
       bearing =
-
-        (
-          bearing + 360
-        ) % 360;
+        (bearing + 360) % 360;
 
 
       return bearing;
@@ -880,11 +819,7 @@
     function normalizeAngle(angle) {
 
       return (
-
-        (
-          angle + 360
-        ) % 360
-
+        (angle + 360) % 360
       );
 
     }
@@ -898,7 +833,6 @@
       from,
       to
     ) {
-
 
       return (
 
@@ -923,7 +857,6 @@
       heading
     ) {
 
-
       if (!directionEnabled) {
 
         return;
@@ -931,21 +864,11 @@
       }
 
 
-      /*
-       * We want the direction of travel to point
-       * toward the top of the screen.
-       *
-       * Therefore the map itself rotates opposite
-       * the travel heading.
-       */
-
       const rotation =
-
         -heading;
 
 
       const mapPane =
-
         document.querySelector(
           "#map .leaflet-map-pane"
         );
@@ -959,7 +882,6 @@
 
 
       mapPane.style.transform =
-
         "rotate(" +
         rotation +
         "deg)";
@@ -973,9 +895,7 @@
 
     function resetMapRotation() {
 
-
       const mapPane =
-
         document.querySelector(
           "#map .leaflet-map-pane"
         );
@@ -989,7 +909,6 @@
 
 
       mapPane.style.transform =
-
         "rotate(0deg)";
 
     }
@@ -1001,14 +920,11 @@
 
     function toggleDirection() {
 
-
       directionEnabled =
-
         !directionEnabled;
 
 
       const button =
-
         document.getElementById(
           "directionButton"
         );
@@ -1016,20 +932,13 @@
 
       if (directionEnabled) {
 
-
         button.innerHTML =
           "Direction ON";
-
 
         button.classList.add(
           "active"
         );
 
-
-        /*
-         * If we already have a reliable heading,
-         * immediately rotate the map.
-         */
 
         if (
           previousGPSPosition &&
@@ -1042,24 +951,16 @@
 
         }
 
-
       }
 
       else {
 
-
         button.innerHTML =
           "Direction OFF";
-
 
         button.classList.remove(
           "active"
         );
-
-
-        /*
-         * Return map to north-up orientation.
-         */
 
         resetMapRotation();
 
@@ -1076,51 +977,34 @@
       position
     ) {
 
-
       const latitude =
-
         position.coords.latitude;
 
-
       const longitude =
-
         position.coords.longitude;
 
-
       const speed =
-
         position.coords.speed;
 
-
       const deviceHeading =
-
         position.coords.heading;
-
 
       let heading = null;
 
 
       /*
-       * ----------------------------------------------------
-       * OPTION 1
-       * USE DEVICE-PROVIDED HEADING
-       * ----------------------------------------------------
+       * DEVICE-PROVIDED HEADING
        */
 
       if (
-
         deviceHeading !== null &&
         !isNaN(deviceHeading) &&
         deviceHeading >= 0
-
       ) {
 
-
         if (
-
           speed === null ||
           speed >= minimumHeadingSpeed
-
         ) {
 
           heading =
@@ -1132,22 +1016,15 @@
 
 
       /*
-       * ----------------------------------------------------
-       * OPTION 2
-       * CALCULATE HEADING FROM GPS MOVEMENT
-       * ----------------------------------------------------
+       * CALCULATED GPS HEADING
        */
 
       if (
-
         heading === null &&
         previousGPSPosition
-
       ) {
 
-
         const distance =
-
           map.distance(
 
             [
@@ -1164,7 +1041,6 @@
 
 
         const timeDifference =
-
           (
             position.timestamp -
             previousGPSPosition.timestamp
@@ -1177,7 +1053,6 @@
         if (timeDifference > 0) {
 
           calculatedSpeed =
-
             distance /
             timeDifference;
 
@@ -1189,9 +1064,7 @@
           minimumHeadingSpeed
         ) {
 
-
           heading =
-
             calculateBearing(
 
               previousGPSPosition.latitude,
@@ -1209,11 +1082,6 @@
       }
 
 
-      /*
-       * Save current GPS position for
-       * the next heading calculation.
-       */
-
       previousGPSPosition = {
 
         latitude:
@@ -1228,10 +1096,6 @@
       };
 
 
-      /*
-       * No reliable heading yet.
-       */
-
       if (heading === null) {
 
         return;
@@ -1239,15 +1103,14 @@
       }
 
 
-      const now = Date.now();
+      const now =
+        Date.now();
 
 
       if (
-
         now -
         lastHeadingUpdateTime <
         headingUpdateInterval
-
       ) {
 
         return;
@@ -1255,36 +1118,25 @@
       }
 
 
-      lastHeadingUpdateTime = now;
+      lastHeadingUpdateTime =
+        now;
 
-
-      /*
-       * Smooth sudden heading changes.
-       */
 
       if (
         currentHeading !== null &&
         !isNaN(currentHeading)
       ) {
 
-
         const difference =
-
           shortestAngleDifference(
 
             currentHeading,
-
             heading
 
           );
 
 
-        /*
-         * Smooth about 30% toward the new heading.
-         */
-
         currentHeading =
-
           normalizeAngle(
 
             currentHeading +
@@ -1319,7 +1171,6 @@
 
     function startGPS() {
 
-
       if (!navigator.geolocation) {
 
         setStatus(
@@ -1331,31 +1182,36 @@
       }
 
 
-      gpsHasCentered = false;
+      gpsHasCentered =
+        false;
 
-      lastMapCenterTime = 0;
+      lastMapCenterTime =
+        0;
 
-      lastVegetationCenter = null;
+      lastVegetationCenter =
+        null;
 
-      previousGPSPosition = null;
+      previousGPSPosition =
+        null;
 
-      currentHeading = 0;
+      currentHeading =
+        0;
 
-      lastHeadingUpdateTime = 0;
+      lastHeadingUpdateTime =
+        0;
+
+      lastVegetationPosition =
+        null;
 
 
-      /*
-       * Start each GPS session with the diagnostic
-       * display collapsed.
-       */
+      gpsDetailsVisible =
+        false;
 
-      gpsDetailsVisible = false;
-
-      latestGPSData = null;
+      latestGPSData =
+        null;
 
 
       const gpsDetailsButton =
-
         document.getElementById(
           "gpsDetailsButton"
         );
@@ -1379,10 +1235,6 @@
       );
 
 
-      /*
-       * Prevent duplicate GPS watches.
-       */
-
       if (watchID !== null) {
 
         navigator.geolocation.clearWatch(
@@ -1393,29 +1245,21 @@
 
 
       watchID =
-
         navigator.geolocation.watchPosition(
 
           function(position) {
 
-
             const latitude =
-
               position.coords.latitude;
 
-
             const longitude =
-
               position.coords.longitude;
 
-
             const accuracy =
-
               position.coords.accuracy;
 
 
             const gpsLatLng =
-
               [
                 latitude,
                 longitude
@@ -1428,9 +1272,7 @@
 
             if (!gpsMarker) {
 
-
               gpsMarker =
-
                 L.circleMarker(
 
                   gpsLatLng,
@@ -1455,7 +1297,6 @@
 
             else {
 
-
               gpsMarker.setLatLng(
                 gpsLatLng
               );
@@ -1469,9 +1310,7 @@
 
             if (!gpsAccuracyCircle) {
 
-
               gpsAccuracyCircle =
-
                 L.circle(
 
                   gpsLatLng,
@@ -1494,11 +1333,9 @@
 
             else {
 
-
               gpsAccuracyCircle.setLatLng(
                 gpsLatLng
               );
-
 
               gpsAccuracyCircle.setRadius(
                 accuracy
@@ -1520,15 +1357,11 @@
                KEEP GPS DOT CENTERED
                ---------------------------------------------- */
 
-            const now = Date.now();
+            const now =
+              Date.now();
 
-
-            /*
-             * FIRST GPS FIX
-             */
 
             if (!gpsHasCentered) {
-
 
               map.setView(
 
@@ -1537,17 +1370,17 @@
                 15,
 
                 {
-
                   animate: false
-
                 }
 
               );
 
 
-              gpsHasCentered = true;
+              gpsHasCentered =
+                true;
 
-              lastMapCenterTime = now;
+              lastMapCenterTime =
+                now;
 
 
               if (vegetationVisible) {
@@ -1558,11 +1391,6 @@
 
             }
 
-
-            /*
-             * SUBSEQUENT GPS FIXES
-             */
-
             else if (
 
               now -
@@ -1571,7 +1399,6 @@
 
             ) {
 
-
               map.setView(
 
                 gpsLatLng,
@@ -1579,15 +1406,14 @@
                 map.getZoom(),
 
                 {
-
                   animate: false
-
                 }
 
               );
 
 
-              lastMapCenterTime = now;
+              lastMapCenterTime =
+                now;
 
             }
 
@@ -1597,7 +1423,6 @@
                ---------------------------------------------- */
 
             const state =
-
               getHistoricalState(
 
                 latitude,
@@ -1606,11 +1431,12 @@
               );
 
 
-            lastState = state;
+            lastState =
+              state;
 
 
             /* ----------------------------------------------
-               STORE GPS DIAGNOSTIC INFORMATION
+               STORE GPS INFORMATION
                ---------------------------------------------- */
 
             latestGPSData = {
@@ -1630,13 +1456,7 @@
             };
 
 
-            /*
-             * GPS Details becomes available after
-             * the first valid GPS fix.
-             */
-
             const gpsDetailsButton =
-
               document.getElementById(
                 "gpsDetailsButton"
               );
@@ -1683,13 +1503,6 @@
 
           function(error) {
 
-
-            /*
-             * GPS errors remain visible automatically.
-             * This makes troubleshooting possible even
-             * when GPS Details is collapsed.
-             */
-
             setStatus(
 
               "GPS error: " +
@@ -1721,14 +1534,11 @@
 
     function toggleVegetation() {
 
-
       vegetationVisible =
-
         !vegetationVisible;
 
 
       const button =
-
         document.getElementById(
           "vegetationButton"
         );
@@ -1736,10 +1546,8 @@
 
       if (!vegetationVisible) {
 
-
         button.innerHTML =
           "Vegetation OFF";
-
 
         button.classList.remove(
           "active"
@@ -1768,7 +1576,6 @@
       button.innerHTML =
         "Vegetation ON";
 
-
       button.classList.add(
         "active"
       );
@@ -1779,7 +1586,8 @@
       );
 
 
-      lastVegetationCenter = null;
+      lastVegetationCenter =
+        null;
 
 
       loadVegetation();
@@ -1793,9 +1601,7 @@
 
     async function loadVegetation() {
 
-
       if (map.getZoom() < 10) {
-
 
         setStatus(
 
@@ -1803,19 +1609,16 @@
 
         );
 
-
         return;
 
       }
 
 
       const center =
-
         map.getCenter();
 
 
       const state =
-
         getHistoricalState(
 
           center.lat,
@@ -1826,13 +1629,11 @@
 
       if (!state) {
 
-
         setStatus(
 
           "Move the map into Michigan or Illinois to load historical vegetation."
 
         );
-
 
         return;
 
@@ -1840,18 +1641,15 @@
 
 
       /*
-       * Avoid unnecessary queries.
+       * Avoid unnecessarily querying the same area.
        */
 
       if (lastVegetationCenter) {
 
-
         const movedDistance =
-
           map.distance(
 
             lastVegetationCenter,
-
             center
 
           );
@@ -1866,7 +1664,8 @@
       }
 
 
-      lastVegetationCenter = center;
+      lastVegetationCenter =
+        center;
 
 
       const bounds =
@@ -1876,23 +1675,17 @@
       const west =
         bounds.getWest();
 
-
       const south =
         bounds.getSouth();
 
-
       const east =
         bounds.getEast();
-
 
       const north =
         bounds.getNorth();
 
 
       let url;
-
-      let inSR;
-
       let outFields;
 
 
@@ -1902,14 +1695,8 @@
 
       if (state === "Michigan") {
 
-
         url =
           michiganURL;
-
-
-        inSR =
-          "4326";
-
 
         outFields =
           "VEGCODE,LEGCODE,COVERTYPE,CNTY_NAME";
@@ -1923,14 +1710,8 @@
 
       else {
 
-
         url =
           illinoisURL;
-
-
-        inSR =
-          "4326";
-
 
         outFields =
           "LAND_CODE,MAP,ACRES,GLO_PY6_ID";
@@ -1938,8 +1719,14 @@
       }
 
 
-      const geometry =
+      /*
+       * ArcGIS envelope.
+       *
+       * We explicitly tell ArcGIS that the coordinates
+       * supplied below are WGS84 / EPSG:4326.
+       */
 
+      const geometry =
         JSON.stringify({
 
           xmin:
@@ -1956,7 +1743,8 @@
 
           spatialReference: {
 
-            wkid: 4326
+            wkid:
+              4326
 
           }
 
@@ -1964,7 +1752,6 @@
 
 
       const params =
-
         new URLSearchParams({
 
           where:
@@ -1977,7 +1764,7 @@
             "esriGeometryEnvelope",
 
           inSR:
-            inSR,
+            "4326",
 
           spatialRel:
             "esriSpatialRelIntersects",
@@ -1999,9 +1786,7 @@
 
       try {
 
-
         const response =
-
           await fetch(
 
             url +
@@ -2044,13 +1829,11 @@
           data.features.length === 0
         ) {
 
-
           setStatus(
 
             "No historical vegetation polygons were returned."
 
           );
-
 
           return;
 
@@ -2067,7 +1850,6 @@
 
 
         vegetationLayer =
-
           L.geoJSON(
 
             data,
@@ -2075,9 +1857,7 @@
             {
 
               style:
-
                 function(feature) {
-
 
                   const p =
                     feature.properties;
@@ -2086,11 +1866,11 @@
                   let color;
 
 
-                  if (state === "Michigan") {
-
+                  if (
+                    state === "Michigan"
+                  ) {
 
                     color =
-
                       getMichiganVegetationColor(
 
                         p.COVERTYPE
@@ -2101,9 +1881,7 @@
 
                   else {
 
-
                     color =
-
                       getIllinoisVegetationColor(
 
                         p.LAND_CODE
@@ -2133,12 +1911,10 @@
 
 
               onEachFeature:
-
                 function(
                   feature,
                   layer
                 ) {
-
 
                   const p =
                     feature.properties;
@@ -2147,8 +1923,9 @@
                   let popup;
 
 
-                  if (state === "Michigan") {
-
+                  if (
+                    state === "Michigan"
+                  ) {
 
                     popup =
 
@@ -2186,7 +1963,6 @@
                   }
 
                   else {
-
 
                     popup =
 
@@ -2236,14 +2012,16 @@
 
                     function(e) {
 
-
                       e.target.setStyle({
 
-                        weight: 3,
+                        weight:
+                          3,
 
-                        color: "#000000",
+                        color:
+                          "#000000",
 
-                        fillOpacity: 0.85
+                        fillOpacity:
+                          0.85
 
                       });
 
@@ -2258,12 +2036,15 @@
 
                     function(e) {
 
+                      if (
+                        vegetationLayer
+                      ) {
 
-                      vegetationLayer.resetStyle(
+                        vegetationLayer.resetStyle(
+                          e.target
+                        );
 
-                        e.target
-
-                      );
+                      }
 
                     }
 
@@ -2300,12 +2081,9 @@
 
       catch(error) {
 
-
         console.error(
-
           "Vegetation loading error:",
           error
-
         );
 
 
@@ -2327,21 +2105,17 @@
 
     function toggleCurrentVegetation() {
 
-
       currentVegetationVisible =
-
         !currentVegetationVisible;
 
 
       const button =
-
         document.getElementById(
           "currentButton"
         );
 
 
       const box =
-
         document.getElementById(
           "currentVegetation"
         );
@@ -2349,15 +2123,12 @@
 
       if (!currentVegetationVisible) {
 
-
         button.classList.remove(
           "active"
         );
 
-
         box.style.display =
           "none";
-
 
         return;
 
@@ -2375,18 +2146,15 @@
 
       if (!gpsMarker) {
 
-
         document.getElementById(
           "currentType"
         ).innerHTML =
-
           "Start GPS first";
 
 
         document.getElementById(
           "currentDetails"
         ).innerHTML =
-
           "Your current location is needed to identify the historical vegetation.";
 
         return;
@@ -2419,9 +2187,7 @@
 
     ) {
 
-
       const state =
-
         getHistoricalState(
 
           latitude,
@@ -2431,23 +2197,16 @@
 
 
       const positionKey =
-
         state +
-
         "|" +
-
         latitude.toFixed(5) +
-
         "," +
-
         longitude.toFixed(5);
 
 
       if (
-
         positionKey ===
         lastVegetationPosition
-
       ) {
 
         return;
@@ -2461,18 +2220,15 @@
 
       if (!state) {
 
-
         document.getElementById(
           "currentType"
         ).innerHTML =
-
           "No historical dataset";
 
 
         document.getElementById(
           "currentDetails"
         ).innerHTML =
-
           "The current GPS location is outside the Michigan and Illinois historical vegetation datasets.";
 
         return;
@@ -2481,29 +2237,23 @@
 
 
       let url;
-
       let outFields;
 
 
       if (state === "Michigan") {
 
-
         url =
           michiganURL;
-
 
         outFields =
           "VEGCODE,LEGCODE,COVERTYPE,CNTY_NAME";
 
       }
 
-
       else {
-
 
         url =
           illinoisURL;
-
 
         outFields =
           "LAND_CODE,MAP,ACRES,GLO_PY6_ID";
@@ -2511,8 +2261,15 @@
       }
 
 
-      const geometry =
+      /*
+       * POINT QUERY
+       *
+       * This is particularly important for Michigan.
+       * We give ArcGIS a WGS84 GPS point and explicitly
+       * identify it as EPSG:4326.
+       */
 
+      const geometry =
         JSON.stringify({
 
           x:
@@ -2523,7 +2280,8 @@
 
           spatialReference: {
 
-            wkid: 4326
+            wkid:
+              4326
 
           }
 
@@ -2531,7 +2289,6 @@
 
 
       const params =
-
         new URLSearchParams({
 
           where:
@@ -2555,6 +2312,9 @@
           returnGeometry:
             "false",
 
+          outSR:
+            "4326",
+
           f:
             "json"
 
@@ -2563,9 +2323,7 @@
 
       try {
 
-
         const response =
-
           await fetch(
 
             url +
@@ -2604,24 +2362,19 @@
 
 
         if (
-
           !data.features ||
           data.features.length === 0
-
         ) {
-
 
           document.getElementById(
             "currentType"
           ).innerHTML =
-
             "No mapped historical vegetation";
 
 
           document.getElementById(
             "currentDetails"
           ).innerHTML =
-
             "No historical polygon was found at your GPS location.";
 
           return;
@@ -2630,27 +2383,26 @@
 
 
         const properties =
-
           data.features[0].attributes;
 
 
+        /* ----------------------------------------------------
+           MICHIGAN CURRENT LOCATION
+           ---------------------------------------------------- */
+
         if (state === "Michigan") {
 
-
           const coverType =
-
             properties.COVERTYPE ||
             "Unknown";
 
 
           const vegCode =
-
             properties.VEGCODE ||
             "Unknown";
 
 
           const county =
-
             properties.CNTY_NAME ||
             "Unknown";
 
@@ -2683,30 +2435,29 @@
         }
 
 
+        /* ----------------------------------------------------
+           ILLINOIS CURRENT LOCATION
+           ---------------------------------------------------- */
+
         else {
 
-
           const landCode =
-
             properties.LAND_CODE ||
             "Unknown";
 
 
           const landName =
-
             getIllinoisLandName(
               landCode
             );
 
 
           const mapName =
-
             properties.MAP ||
             "Unknown";
 
 
           const acres =
-
             properties.ACRES ||
             "Unknown";
 
@@ -2714,7 +2465,6 @@
           document.getElementById(
             "currentType"
           ).innerHTML =
-
             landName;
 
 
@@ -2747,7 +2497,6 @@
 
       catch(error) {
 
-
         console.error(
 
           "Current vegetation error:",
@@ -2759,14 +2508,12 @@
         document.getElementById(
           "currentType"
         ).innerHTML =
-
           "Unable to identify vegetation";
 
 
         document.getElementById(
           "currentDetails"
         ).innerHTML =
-
           error.message;
 
       }
@@ -2781,7 +2528,6 @@
     function formatVegetationName(
       name
     ) {
-
 
       if (!name) {
 
@@ -2812,9 +2558,7 @@
       code
     ) {
 
-
       const names = {
-
 
         "ba":
           "Bayou",
@@ -2973,9 +2717,21 @@
       coverType
     ) {
 
+      /*
+       * Normalize the ArcGIS value before looking it up.
+       * This protects against differences in capitalization
+       * or leading/trailing spaces.
+       */
+
+      const key =
+        coverType
+          ? String(coverType)
+              .trim()
+              .toUpperCase()
+          : "";
+
 
       const colors = {
-
 
         "ASPEN-BIRCH FOREST":
           "rgb(127,163,98)",
@@ -3075,7 +2831,7 @@
 
       return (
 
-        colors[coverType] ||
+        colors[key] ||
         "#cccccc"
 
       );
@@ -3091,9 +2847,7 @@
       code
     ) {
 
-
       const colors = {
-
 
         "ba":
           "rgb(13,0,129)",
@@ -3228,7 +2982,7 @@
 
         colors[
           code
-            ? code.toLowerCase()
+            ? String(code).toLowerCase()
             : ""
         ] ||
 
@@ -3252,7 +3006,6 @@
 
       function() {
 
-
         if (!vegetationVisible) {
 
           return;
@@ -3266,7 +3019,6 @@
 
 
         reloadTimer =
-
           setTimeout(
 
             function() {
