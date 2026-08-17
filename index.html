@@ -110,13 +110,6 @@
     }
 
 
-    #gpsButton.active {
-
-      background: #245c9c;
-
-    }
-
-
     #vegetationButton.active {
 
       background: #8b5a2b;
@@ -171,7 +164,7 @@
 
       line-height: 1.25;
 
-      max-width: 310px;
+      max-width: 300px;
 
     }
 
@@ -194,7 +187,7 @@
 
       border-left: 4px solid #2c6e49;
 
-      max-width: 310px;
+      max-width: 300px;
 
     }
 
@@ -229,7 +222,7 @@
 
       font-size: 11px;
 
-      line-height: 1.3;
+      line-height: 1.25;
 
       color: #555;
 
@@ -237,24 +230,24 @@
 
 
     /* =====================================================
-       POPUP LINKS
+       MNFI COMMUNITY LINK
        ===================================================== */
 
-    .mnfi-link {
+    .mnfiLink {
 
       display: inline-block;
 
-      margin-top: 5px;
+      margin-top: 8px;
 
-      padding: 5px 7px;
-
-      border-radius: 5px;
+      padding: 6px 8px;
 
       background: #2c6e49;
 
       color: white !important;
 
       text-decoration: none;
+
+      border-radius: 5px;
 
       font-weight: bold;
 
@@ -263,33 +256,22 @@
     }
 
 
-    .mnfi-link:hover {
+    .mnfiLink:hover {
 
       background: #1f5035;
 
     }
 
 
-    .interpretation {
+    .tensionNote {
 
-      margin-top: 6px;
-
-      padding-top: 6px;
-
-      border-top: 1px solid #ddd;
-
-    }
-
-
-    .tension-note {
+      margin-top: 5px;
 
       font-size: 10px;
 
       color: #666;
 
-      margin-top: 4px;
-
-      line-height: 1.25;
+      line-height: 1.2;
 
     }
 
@@ -340,14 +322,14 @@
 
         line-height: 1.2;
 
-        max-width: 290px;
+        max-width: 280px;
 
       }
 
 
       #currentVegetation {
 
-        max-width: 290px;
+        max-width: 280px;
 
         padding: 6px;
 
@@ -373,6 +355,15 @@
       #currentDetails {
 
         font-size: 10px;
+
+      }
+
+
+      .mnfiLink {
+
+        font-size: 11px;
+
+        padding: 5px 7px;
 
       }
 
@@ -526,8 +517,6 @@
 
     let watchID = null;
 
-    let gpsEnabled = false;
-
     let gpsHasCentered = false;
 
     let gpsDetailsVisible = false;
@@ -562,7 +551,7 @@
 
 
     /* ========================================================
-       MICHIGAN HISTORICAL VEGETATION SERVICE
+       HISTORICAL VEGETATION SERVICE
        ======================================================== */
 
     const michiganURL =
@@ -571,76 +560,364 @@
 
 
     /* ========================================================
-       MNFI COMMUNITY PAGES
+       TENSION ZONE
+       ========================================================
+
+       TEMPORARY STRAIGHT-LINE APPROXIMATION
+
+       North of 43.5 N  = Northern
+       South of 43.5 N  = Southern
+
+       This is intentionally a simple approximation for now.
+       The actual Michigan floristic/climatic tension zone is
+       irregular rather than a straight east-west line.
+
        ======================================================== */
 
-    const mnfiCommunityURLs = {
+    const TENSION_ZONE_LATITUDE = 43.5;
 
-      "Mesic Northern Forest":
 
+    /* ========================================================
+       MNFI COMMUNITY URLS
+       ========================================================
+
+       These are actual MNFI community-description pages.
+
+       Only reasonably defensible matches are included.
+
+       ======================================================== */
+
+    const MNFI_COMMUNITIES = {
+
+      "mesic northern forest":
         "https://mnfi.anr.msu.edu/communities/description/10687/mesic-northern-forest",
 
+      "mesic southern forest":
+        "https://mnfi.anr.msu.edu/communities/description/10684/Mesic-Southern-Forest",
 
-      "Mesic Southern Forest":
+      "dry-mesic northern forest":
+        "https://mnfi.anr.msu.edu/communities/description/10688/dry-mesic-northern-forest",
 
-        "https://mnfi.anr.msu.edu/communities/description/10684/Mesic-Southern-Forest"
+      "dry northern forest":
+        "https://mnfi.anr.msu.edu/communities/description/10689/Dry-Northern-Forest/1000",
+
+      "dry southern forest":
+        "https://mnfi.anr.msu.edu/communities/description/10686",
+
+      "dry-mesic southern forest":
+        "https://mnfi.anr.msu.edu/communities/description/10685/dry-mesic-southern-forest",
+
+      "boreal forest":
+        "https://mnfi.anr.msu.edu/communities/description/10690/boreal-forest/",
+
+      "northern hardwood swamp":
+        "https://mnfi.anr.msu.edu/communities/description/10659/northern-hardwood-swamp",
+
+      "rich conifer swamp":
+        "https://mnfi.anr.msu.edu/communities/description/10652/Rich-Conifer-Swamp",
+
+      "oak-pine barrens":
+        "https://mnfi.anr.msu.edu/communities/description/10692/Oak-pine-barrens",
+
+      "oak barrens":
+        "https://mnfi.anr.msu.edu/communities/description/10693/Oak-barrens",
+
+      "pine barrens":
+        "https://mnfi.anr.msu.edu/communities/description/10694",
+
+      "dry sand prairie":
+        "https://mnfi.anr.msu.edu/communities/description/10698/Dry-Sand-Prairie/1000"
 
     };
 
 
     /* ========================================================
-       APPROXIMATE FLORISTIC TENSION ZONE
+       FOREST TYPE -> COMMUNITY CLASSIFICATION
        ========================================================
 
-       This is intentionally an APPROXIMATION.
+       The circa-1800 vegetation layer and the modern MNFI
+       natural-community classification are NOT identical
+       classification systems.
 
-       MSU's floristic-zone material describes the tension
-       zone as a band rather than a perfectly fixed line.
-       One commonly used description places it roughly
-       from Muskegon to Bay City.
+       Therefore this table deliberately uses only defensible
+       associations.
 
-       We use several points to create a gently curved
-       approximation rather than a single latitude.
-
-       Coordinates are [latitude, longitude].
-
-       West -> East:
-
-       Muskegon area
-       Newaygo / Mecosta area
-       Isabella area
-       Clare / Gladwin area
-       Bay City area
-
-       IMPORTANT:
-
-       This line is used only to provide an interpretive
-       northern/southern designation for Beech-Sugar Maple
-       Forest polygons.
-
-       It does NOT modify the original MNFI circa-1800
-       COVERTYPE classification.
        ======================================================== */
 
-    const tensionZoneLine = [
+    const MICHIGAN_COMMUNITY_MAP = {
 
-      [43.230, -86.260],   // Muskegon
 
-      [43.285, -85.950],
+      /*
+       * MESIC NORTHERN / SOUTHERN
+       *
+       * These are explicitly divided by the temporary
+       * straight-line tension-zone approximation.
+       */
 
-      [43.340, -85.600],
+      "BEECH-SUGAR MAPLE FOREST":
+        {
+          tensionZone: true,
+          north:
+            "Mesic Northern Forest",
+          south:
+            "Mesic Southern Forest"
+        },
 
-      [43.400, -85.250],
 
-      [43.455, -84.900],
+      "SUGAR MAPLE-BASSWOOD FOREST":
+        {
+          tensionZone: true,
+          north:
+            "Mesic Northern Forest",
+          south:
+            "Mesic Southern Forest"
+        },
 
-      [43.500, -84.550],
 
-      [43.530, -84.200],
+      /*
+       * These are strongly associated with mesic northern
+       * forest.
+       */
 
-      [43.555, -83.900]    // Bay City
+      "BEECH-SUGAR MAPLE-HEMLOCK FOREST":
+        {
+          fixed:
+            "Mesic Northern Forest"
+        },
 
-    ];
+
+      "SUGAR MAPLE-HEMLOCK FOREST":
+        {
+          fixed:
+            "Mesic Northern Forest"
+        },
+
+
+      "SUGAR MAPLE-YELLOW BIRCH FOREST":
+        {
+          fixed:
+            "Mesic Northern Forest"
+        },
+
+
+      "HEMLOCK-YELLOW BIRCH FOREST":
+        {
+          fixed:
+            "Mesic Northern Forest"
+        },
+
+
+      "HEMLOCK-WHITE PINE FOREST":
+        {
+          fixed:
+            "Mesic Northern Forest"
+        },
+
+
+      "WHITE PINE-MIXED HARDWOOD FOREST":
+        {
+          fixed:
+            "Mesic Northern Forest"
+        },
+
+
+      /*
+       * White pine / oak systems are better treated as
+       * dry-mesic northern forest in this simplified
+       * crosswalk.
+       */
+
+      "WHITE PINE-WHITE OAK FOREST":
+        {
+          fixed:
+            "Dry-mesic Northern Forest"
+        },
+
+
+      "WHITE PINE-RED PINE FOREST":
+        {
+          fixed:
+            "Dry-mesic Northern Forest"
+        },
+
+
+      "MIXED PINE-OAK FOREST":
+        {
+          fixed:
+            "Dry-mesic Northern Forest"
+        },
+
+
+      /*
+       * Pine systems
+       */
+
+      "JACK PINE-RED PINE FOREST":
+        {
+          fixed:
+            "Dry Northern Forest"
+        },
+
+
+      "PINE BARRENS":
+        {
+          fixed:
+            "Pine Barrens"
+        },
+
+
+      /*
+       * Oak systems
+       *
+       * Oak-Hickory and Mixed Oak are divided according to
+       * the same temporary straight-line tension-zone concept.
+       *
+       * North:
+       *     Dry-mesic Northern Forest
+       *
+       * South:
+       *     Dry-mesic Southern Forest
+       */
+
+      "OAK-HICKORY FOREST":
+        {
+          tensionZone: true,
+          north:
+            "Dry-mesic Northern Forest",
+          south:
+            "Dry-mesic Southern Forest"
+        },
+
+
+      "MIXED OAK FOREST":
+        {
+          tensionZone: true,
+          north:
+            "Dry-mesic Northern Forest",
+          south:
+            "Dry-mesic Southern Forest"
+        },
+
+
+      /*
+       * Oak savanna/barrens.
+       */
+
+      "MIXED OAK SAVANNA":
+        {
+          tensionZone: true,
+          north:
+            "Oak-Pine Barrens",
+          south:
+            "Oak Barrens"
+        },
+
+
+      "OAK/PINE BARRENS":
+        {
+          fixed:
+            "Oak-Pine Barrens"
+        },
+
+
+      /*
+       * Wetland forest systems
+       */
+
+      "BLACK ASH SWAMP":
+        {
+          fixed:
+            "Northern Hardwood Swamp"
+        },
+
+
+      "CEDAR SWAMP":
+        {
+          fixed:
+            "Rich Conifer Swamp"
+        },
+
+
+      "MIXED CONIFER SWAMP":
+        {
+          fixed:
+            "Rich Conifer Swamp"
+        },
+
+
+      /*
+       * Spruce-fir-cedar is closest to the boreal/conifer
+       * portion of the MNFI classification.
+       */
+
+      "SPRUCE-FIR-CEDAR FOREST":
+        {
+          fixed:
+            "Boreal Forest"
+        },
+
+
+      /*
+       * Aspen-birch is retained without an MNFI community
+       * link because the circa-1800 cover class does not
+       * correspond cleanly to a single MNFI natural community.
+       */
+
+      "ASPEN-BIRCH FOREST":
+        {
+          none:
+            true
+        },
+
+
+      /*
+       * These are not forest communities and therefore
+       * intentionally do not receive forest-community links.
+       */
+
+      "EXPOSED BEDROCK":
+        {
+          none:
+            true
+        },
+
+      "GRASSLAND":
+        {
+          none:
+            true
+        },
+
+      "LAKE/RIVER":
+        {
+          none:
+            true
+        },
+
+      "MUSKEG/BOG":
+        {
+          none:
+            true
+        },
+
+      "SAND DUNE":
+        {
+          none:
+            true
+        },
+
+      "SHRUB SWAMP/EMERGENT MARSH":
+        {
+          none:
+            true
+        },
+
+      "WET PRAIRIE":
+        {
+          none:
+            true
+        }
+
+    };
 
 
     /* ========================================================
@@ -657,20 +934,20 @@
 
 
     /* ========================================================
-       GPS TOGGLE
+       GPS ON / OFF TOGGLE
        ======================================================== */
 
     function toggleGPS() {
 
-      if (gpsEnabled) {
+      if (watchID === null) {
 
-        stopGPS();
+        startGPS();
 
       }
 
       else {
 
-        startGPS();
+        stopGPS();
 
       }
 
@@ -683,49 +960,33 @@
 
     function stopGPS() {
 
-      gpsEnabled = false;
-
-
       if (watchID !== null) {
 
         navigator.geolocation.clearWatch(
           watchID
         );
 
-        watchID = null;
-
       }
 
 
-      if (gpsMarker) {
-
-        map.removeLayer(
-          gpsMarker
-        );
-
-        gpsMarker = null;
-
-      }
+      watchID =
+        null;
 
 
-      if (gpsAccuracyCircle) {
-
-        map.removeLayer(
-          gpsAccuracyCircle
-        );
-
-        gpsAccuracyCircle = null;
-
-      }
+      gpsHasCentered =
+        false;
 
 
-      gpsHasCentered = false;
+      previousGPSPosition =
+        null;
 
-      latestGPSData = null;
 
-      lastVegetationPosition = null;
+      latestGPSData =
+        null;
 
-      lastState = null;
+
+      gpsDetailsVisible =
+        false;
 
 
       const gpsButton =
@@ -753,31 +1014,31 @@
         "none";
 
 
-      gpsDetailsVisible =
-        false;
-
-
-      gpsDetailsButton.innerHTML =
-        "GPS Details";
-
-
       gpsDetailsButton.classList.remove(
         "active"
       );
 
 
-      if (currentVegetationVisible) {
+      if (gpsMarker) {
 
-        document.getElementById(
-          "currentType"
-        ).innerHTML =
-          "GPS OFF";
+        map.removeLayer(
+          gpsMarker
+        );
+
+        gpsMarker =
+          null;
+
+      }
 
 
-        document.getElementById(
-          "currentDetails"
-        ).innerHTML =
-          "Turn GPS on to identify the historical vegetation at your location.";
+      if (gpsAccuracyCircle) {
+
+        map.removeLayer(
+          gpsAccuracyCircle
+        );
+
+        gpsAccuracyCircle =
+          null;
 
       }
 
@@ -797,7 +1058,6 @@
 
       gpsDetailsVisible =
         !gpsDetailsVisible;
-
 
       const button =
         document.getElementById(
@@ -853,12 +1113,12 @@
 
       const stateText =
         latestGPSData.state ||
-        "Outside current historical coverage";
+        "Outside Michigan historical coverage";
 
 
       setStatus(
 
-        "GPS ON<br>" +
+        "GPS active<br>" +
 
         "Historical dataset: " +
 
@@ -888,12 +1148,12 @@
 
       const stateText =
         data.state ||
-        "Outside current historical coverage";
+        "Outside Michigan historical coverage";
 
 
       setStatus(
 
-        "GPS ON<br>" +
+        "GPS active<br>" +
 
         "Latitude: " +
         data.latitude.toFixed(6) +
@@ -951,117 +1211,13 @@
 
 
     /* ========================================================
-       DETERMINE WHETHER POINT IS SOUTH OF TENSION ZONE
+       GET COMMUNITY FOR A POLYGON
        ======================================================== */
 
-    function isSouthOfTensionZone(
-      latitude,
-      longitude
-    ) {
-
-      /*
-       * The line runs west-to-east.
-
-       * We interpolate the approximate tension-zone
-       * latitude at the supplied longitude.
-
-       * If the user's latitude is LOWER than the line,
-       * the location is considered south of the zone.
-       */
-
-
-      if (
-        longitude <
-        tensionZoneLine[0][1]
-      ) {
-
-        return false;
-
-      }
-
-
-      if (
-        longitude >
-        tensionZoneLine[
-          tensionZoneLine.length - 1
-        ][1]
-      ) {
-
-        return latitude <
-          tensionZoneLine[
-            tensionZoneLine.length - 1
-          ][0];
-
-      }
-
-
-      for (
-        let i = 0;
-        i <
-        tensionZoneLine.length - 1;
-        i++
-      ) {
-
-        const p1 =
-          tensionZoneLine[i];
-
-        const p2 =
-          tensionZoneLine[i + 1];
-
-
-        if (
-          longitude >= p1[1] &&
-          longitude <= p2[1]
-        ) {
-
-          const fraction =
-
-            (
-              longitude -
-              p1[1]
-            ) /
-
-            (
-              p2[1] -
-              p1[1]
-            );
-
-
-          const zoneLatitude =
-
-            p1[0] +
-
-            fraction *
-            (
-              p2[0] -
-              p1[0]
-            );
-
-
-          return (
-            latitude <
-            zoneLatitude
-          );
-
-        }
-
-      }
-
-
-      return false;
-
-    }
-
-
-    /* ========================================================
-       DETERMINE MESIC FOREST INTERPRETATION
-       ======================================================== */
-
-    function getMesicForestInterpretation(
+    function getMNFICommunity(
 
       coverType,
-      latitude,
-      longitude
+      latitude
 
     ) {
 
@@ -1072,100 +1228,206 @@
       }
 
 
-      const normalized =
-
+      const key =
         String(coverType)
           .trim()
           .toUpperCase();
 
 
-      /*
-       * We only reinterpret the historical
-       * BEECH-SUGAR MAPLE FOREST category.
-       */
+      const entry =
+        MICHIGAN_COMMUNITY_MAP[key];
 
-      if (
-        normalized !==
-        "BEECH-SUGAR MAPLE FOREST"
-      ) {
+
+      if (!entry) {
 
         return null;
 
       }
 
 
-      const south =
-        isSouthOfTensionZone(
-          latitude,
-          longitude
-        );
+      /*
+       * Explicitly no community mapping.
+       */
+
+      if (entry.none) {
+
+        return null;
+
+      }
 
 
-      if (south) {
+      /*
+       * Location-dependent community.
+       */
+
+      if (entry.tensionZone) {
+
+        if (
+          latitude >=
+          TENSION_ZONE_LATITUDE
+        ) {
+
+          return {
+
+            name:
+              entry.north,
+
+            url:
+              MNFI_COMMUNITIES[
+                entry.north
+                  .toLowerCase()
+              ],
+
+            region:
+              "North of the approximate tension zone"
+
+          };
+
+        }
+
+        else {
+
+          return {
+
+            name:
+              entry.south,
+
+            url:
+              MNFI_COMMUNITIES[
+                entry.south
+                  .toLowerCase()
+              ],
+
+            region:
+              "South of the approximate tension zone"
+
+          };
+
+        }
+
+      }
+
+
+      /*
+       * Fixed community.
+       */
+
+      if (entry.fixed) {
 
         return {
 
           name:
-            "Mesic Southern Forest",
+            entry.fixed,
 
           url:
-            mnfiCommunityURLs[
-              "Mesic Southern Forest"
-            ]
+            MNFI_COMMUNITIES[
+              entry.fixed
+                .toLowerCase()
+            ],
+
+          region:
+            null
 
         };
 
       }
 
 
-      return {
-
-        name:
-          "Mesic Northern Forest",
-
-        url:
-          mnfiCommunityURLs[
-            "Mesic Northern Forest"
-          ]
-
-      };
+      return null;
 
     }
 
 
     /* ========================================================
-       BUILD MNFI COMMUNITY LINK
+       FORMAT MNFI LINK
        ======================================================== */
 
-    function buildMNFILink(
-      interpretation
+    function createMNFILink(
+
+      community
+
     ) {
 
-      if (!interpretation) {
+      if (
+        !community ||
+        !community.url
+      ) {
 
         return "";
 
       }
 
 
-      return (
+      let html =
 
-        '<a class="mnfi-link" ' +
+        "<a " +
 
-        'href="' +
-        interpretation.url +
-        '" ' +
+        "class='mnfiLink' " +
 
-        'target="_blank" ' +
+        "href='" +
+        community.url +
+        "' " +
 
-        'rel="noopener noreferrer">' +
+        "target='_blank' " +
 
-        "View MNFI " +
-        interpretation.name +
+        "rel='noopener noreferrer'>" +
 
-        "</a>"
+        "View MNFI community profile →" +
 
-      );
+        "</a>";
+
+
+      if (community.region) {
+
+        html +=
+
+          "<div class='tensionNote'>" +
+
+          community.region +
+
+          " (" +
+
+          TENSION_ZONE_LATITUDE +
+
+          "° N temporary straight-line boundary)" +
+
+          "</div>";
+
+      }
+
+
+      return html;
+
+    }
+
+
+    /* ========================================================
+       CALCULATE POLYGON CENTER
+       ======================================================== */
+
+    function getFeatureCenter(
+
+      layer
+
+    ) {
+
+      try {
+
+        const center =
+          layer
+            .getBounds()
+            .getCenter();
+
+
+        return center;
+
+      }
+
+      catch(error) {
+
+        return null;
+
+      }
 
     }
 
@@ -1187,7 +1449,27 @@
       }
 
 
-      gpsEnabled = true;
+      gpsHasCentered =
+        false;
+
+      lastMapCenterTime =
+        0;
+
+      lastVegetationCenter =
+        null;
+
+      previousGPSPosition =
+        null;
+
+      lastVegetationPosition =
+        null;
+
+
+      gpsDetailsVisible =
+        false;
+
+      latestGPSData =
+        null;
 
 
       const gpsButton =
@@ -1203,29 +1485,6 @@
       gpsButton.classList.add(
         "active"
       );
-
-
-      gpsHasCentered =
-        false;
-
-      lastMapCenterTime =
-        0;
-
-      lastVegetationCenter =
-        null;
-
-      lastVegetationPosition =
-        null;
-
-      latestGPSData =
-        null;
-
-      lastState =
-        null;
-
-
-      gpsDetailsVisible =
-        false;
 
 
       const gpsDetailsButton =
@@ -1262,17 +1521,9 @@
 
 
       watchID =
-
         navigator.geolocation.watchPosition(
 
           function(position) {
-
-            if (!gpsEnabled) {
-
-              return;
-
-            }
-
 
             const latitude =
               position.coords.latitude;
@@ -1386,10 +1637,7 @@
                 15,
 
                 {
-
-                  animate:
-                    false
-
+                  animate: false
                 }
 
               );
@@ -1425,10 +1673,7 @@
                 map.getZoom(),
 
                 {
-
-                  animate:
-                    false
-
+                  animate: false
                 }
 
               );
@@ -1478,13 +1723,7 @@
             };
 
 
-            const detailsButton =
-              document.getElementById(
-                "gpsDetailsButton"
-              );
-
-
-            detailsButton.style.display =
+            gpsDetailsButton.style.display =
               "inline-block";
 
 
@@ -1509,9 +1748,7 @@
                CURRENT VEGETATION
                ---------------------------------------------- */
 
-            if (
-              currentVegetationVisible
-            ) {
+            if (currentVegetationVisible) {
 
               updateCurrentVegetation(
 
@@ -1527,13 +1764,6 @@
 
           function(error) {
 
-            if (!gpsEnabled) {
-
-              return;
-
-            }
-
-
             setStatus(
 
               "GPS error: " +
@@ -1546,14 +1776,11 @@
 
           {
 
-            enableHighAccuracy:
-              true,
+            enableHighAccuracy: true,
 
-            maximumAge:
-              1000,
+            maximumAge: 1000,
 
-            timeout:
-              15000
+            timeout: 15000
 
           }
 
@@ -1661,7 +1888,7 @@
         );
 
 
-      if (state !== "Michigan") {
+      if (!state) {
 
         setStatus(
 
@@ -1719,6 +1946,18 @@
         bounds.getNorth();
 
 
+      const url =
+        michiganURL;
+
+
+      const outFields =
+        "VEGCODE,LEGCODE,COVERTYPE,CNTY_NAME";
+
+
+      /*
+       * ArcGIS envelope.
+       */
+
       const geometry =
         JSON.stringify({
 
@@ -1763,7 +2002,7 @@
             "esriSpatialRelIntersects",
 
           outFields:
-            "VEGCODE,LEGCODE,COVERTYPE,CNTY_NAME",
+            outFields,
 
           returnGeometry:
             "true",
@@ -1782,7 +2021,7 @@
         const response =
           await fetch(
 
-            michiganURL +
+            url +
             "/query?" +
             params.toString()
 
@@ -1899,145 +2138,129 @@
 
 
                   /*
-                   * Find the polygon's center.
-                   *
-                   * This is used for the
-                   * tension-zone interpretation.
+                   * Use the actual clicked location
+                   * when possible. This means a polygon
+                   * crossing the temporary tension-zone
+                   * line can resolve according to where
+                   * the user clicks.
                    */
 
-                  let polygonCenter =
-                    null;
+                  layer.on(
+
+                    "click",
+
+                    function(e) {
+
+                      const clickLatitude =
+                        e.latlng.lat;
 
 
-                  try {
+                      const community =
+                        getMNFICommunity(
 
-                    const bounds =
-                      layer.getBounds();
+                          coverType,
 
+                          clickLatitude
 
-                    polygonCenter =
-                      bounds.getCenter();
-
-                  }
-
-                  catch(error) {
-
-                    polygonCenter =
-                      null;
-
-                  }
+                        );
 
 
-                  let interpretation =
-                    null;
+                      let popup =
+
+                        "<strong>" +
+
+                        "Michigan Circa-1800 Vegetation" +
+
+                        "</strong>" +
+
+                        "<br><br>" +
+
+                        "<strong>Historical cover type:</strong><br>" +
+
+                        coverType +
+
+                        "<br><br>" +
+
+                        "<strong>Vegetation code:</strong> " +
+
+                        (
+
+                          p.VEGCODE ||
+                          "Unknown"
+
+                        ) +
+
+                        "<br><br>" +
+
+                        "<strong>County:</strong> " +
+
+                        (
+
+                          p.CNTY_NAME ||
+                          "Unknown"
+
+                        );
 
 
-                  if (polygonCenter) {
+                      /*
+                       * MNFI COMMUNITY
+                       */
 
-                    interpretation =
-                      getMesicForestInterpretation(
+                      if (community) {
 
-                        coverType,
+                        popup +=
 
-                        polygonCenter.lat,
+                          "<br><br>" +
 
-                        polygonCenter.lng
+                          "<strong>MNFI natural community:</strong><br>" +
 
+                          community.name +
+
+                          createMNFILink(
+                            community
+                          );
+
+                      }
+
+
+                      else {
+
+                        popup +=
+
+                          "<br><br>" +
+
+                          "<span style='color:#666'>" +
+
+                          "No direct MNFI natural-community " +
+
+                          "crosswalk assigned to this historical " +
+
+                          "cover type." +
+
+                          "</span>";
+
+                      }
+
+
+                      layer.bindPopup(
+
+                        popup,
+
+                        {
+
+                          maxWidth:
+                            300
+
+                        }
+
+                      ).openPopup(
+                        e.latlng
                       );
 
-                  }
+                    }
 
-
-                  let popup =
-
-                    "<strong>" +
-
-                    "Michigan Circa-1800 Vegetation" +
-
-                    "</strong>" +
-
-                    "<br><br>" +
-
-                    "<strong>Historical cover type:</strong><br>" +
-
-                    formatVegetationName(
-                      coverType
-                    ) +
-
-                    "<br><br>" +
-
-                    "<strong>Vegetation code:</strong> " +
-
-                    (
-
-                      p.VEGCODE ||
-                      "Unknown"
-
-                    ) +
-
-                    "<br><br>" +
-
-                    "<strong>County:</strong> " +
-
-                    (
-
-                      p.CNTY_NAME ||
-                      "Unknown"
-
-                    );
-
-
-                  /* ------------------------------------------
-                     MESIC FOREST INTERPRETATION
-                     ------------------------------------------ */
-
-                  if (interpretation) {
-
-                    popup +=
-
-                      '<div class="interpretation">' +
-
-                      "<strong>MNFI community interpretation:</strong><br>" +
-
-                      interpretation.name +
-
-                      "<br>" +
-
-                      buildMNFILink(
-                        interpretation
-                      ) +
-
-                      '<div class="tension-note">' +
-
-                      "Interpretation based on the approximate " +
-
-                      "floristic tension-zone position. " +
-
-                      "The historical polygon itself remains classified " +
-
-                      "as " +
-
-                      formatVegetationName(
-                        coverType
-                      ) +
-
-                      " in the circa-1800 dataset." +
-
-                      "</div>" +
-
-                      "</div>";
-
-                  }
-
-
-                  layer.bindPopup(
-                    popup
                   );
 
-
-                  /* ------------------------------------------
-                     HIGHLIGHT POLYGON
-                     ------------------------------------------ */
 
                   layer.on(
 
@@ -2175,12 +2398,12 @@
         "block";
 
 
-      if (!gpsEnabled || !gpsMarker) {
+      if (!gpsMarker) {
 
         document.getElementById(
           "currentType"
         ).innerHTML =
-          "Turn GPS ON first";
+          "Turn GPS on first";
 
 
         document.getElementById(
@@ -2218,13 +2441,6 @@
 
     ) {
 
-      if (!gpsEnabled) {
-
-        return;
-
-      }
-
-
       const state =
         getHistoricalState(
 
@@ -2256,7 +2472,7 @@
         positionKey;
 
 
-      if (state !== "Michigan") {
+      if (!state) {
 
         document.getElementById(
           "currentType"
@@ -2272,6 +2488,14 @@
         return;
 
       }
+
+
+      const url =
+        michiganURL;
+
+
+      const outFields =
+        "VEGCODE,LEGCODE,COVERTYPE,CNTY_NAME";
 
 
       /*
@@ -2316,7 +2540,7 @@
             "esriSpatialRelIntersects",
 
           outFields:
-            "VEGCODE,LEGCODE,COVERTYPE,CNTY_NAME",
+            outFields,
 
           returnGeometry:
             "false",
@@ -2335,7 +2559,7 @@
         const response =
           await fetch(
 
-            michiganURL +
+            url +
             "/query?" +
             params.toString()
 
@@ -2410,10 +2634,6 @@
           "Unknown";
 
 
-        /* ----------------------------------------------
-           ORIGINAL HISTORICAL TYPE
-           ---------------------------------------------- */
-
         document.getElementById(
           "currentType"
         ).innerHTML =
@@ -2423,9 +2643,7 @@
           );
 
 
-        document.getElementById(
-          "currentDetails"
-        ).innerHTML =
+        let details =
 
           "<strong>Michigan MNFI circa-1800</strong>" +
 
@@ -2440,51 +2658,75 @@
           county;
 
 
-        /* ----------------------------------------------
-           MESIC FOREST INTERPRETATION
-           ---------------------------------------------- */
+        /*
+         * Add the MNFI community classification
+         * to the current-location display too.
+         */
 
-        const interpretation =
-          getMesicForestInterpretation(
+        const community =
+          getMNFICommunity(
 
             coverType,
 
-            latitude,
-
-            longitude
+            latitude
 
           );
 
 
-        if (interpretation) {
+        if (community) {
 
-          document.getElementById(
-            "currentDetails"
-          ).innerHTML +=
+          details +=
 
             "<br><br>" +
 
-            "<strong>MNFI community interpretation:</strong>" +
+            "<strong>MNFI natural community:</strong><br>" +
+
+            community.name +
 
             "<br>" +
 
-            interpretation.name +
+            "<a " +
 
-            "<br>" +
+            "class='mnfiLink' " +
 
-            buildMNFILink(
-              interpretation
-            ) +
+            "href='" +
+            community.url +
+            "' " +
 
-            '<div class="tension-note">' +
+            "target='_blank' " +
 
-            "Based on the approximate floristic " +
+            "rel='noopener noreferrer'>" +
 
-            "tension-zone position." +
+            "View MNFI community profile →" +
 
-            "</div>";
+            "</a>";
+
+
+          if (community.region) {
+
+            details +=
+
+              "<div class='tensionNote'>" +
+
+              community.region +
+
+              " (" +
+
+              TENSION_ZONE_LATITUDE +
+
+              "° N temporary straight-line boundary)" +
+
+              "</div>";
+
+          }
 
         }
+
+
+        document.getElementById(
+          "currentDetails"
+        ).innerHTML =
+          details;
 
       }
 
@@ -2530,20 +2772,15 @@
       }
 
 
-      return String(name)
-
+      return name
         .toLowerCase()
-
         .replace(
-
           /\b\w/g,
-
           function(letter) {
 
             return letter.toUpperCase();
 
           }
-
         );
 
     }
@@ -2558,13 +2795,10 @@
     ) {
 
       const key =
-
         coverType
-
           ? String(coverType)
               .trim()
               .toUpperCase()
-
           : "";
 
 
