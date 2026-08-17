@@ -110,27 +110,12 @@
     }
 
 
-    /* =====================================================
-       GPS BUTTON
-       ===================================================== */
-
-    #gpsButton {
-
-      background: #555;
-
-    }
-
-
     #gpsButton.active {
 
-      background: #1976d2;
+      background: #b33a3a;
 
     }
 
-
-    /* =====================================================
-       VEGETATION BUTTON
-       ===================================================== */
 
     #vegetationButton.active {
 
@@ -138,10 +123,6 @@
 
     }
 
-
-    /* =====================================================
-       CURRENT VEGETATION BUTTON
-       ===================================================== */
 
     #currentButton.active {
 
@@ -251,6 +232,32 @@
       line-height: 1.25;
 
       color: #555;
+
+    }
+
+
+    /* =====================================================
+       MNFI LINKS
+       ===================================================== */
+
+    .mnfiLink {
+
+      display: inline-block;
+
+      margin-top: 7px;
+
+      color: #245c9c;
+
+      font-weight: bold;
+
+      text-decoration: none;
+
+    }
+
+
+    .mnfiLink:hover {
+
+      text-decoration: underline;
 
     }
 
@@ -396,7 +403,7 @@
 
     <div id="status">
 
-      GPS OFF
+      GPS off
 
     </div>
 
@@ -422,6 +429,7 @@
       <div id="currentDetails">
 
       </div>
+
 
     </div>
 
@@ -478,16 +486,34 @@
 
 
     /* ========================================================
-       GPS VARIABLES
+       MNFI SOURCE
        ======================================================== */
 
-    let gpsEnabled = false;
+    const mnfiVegetationURL =
+
+      "https://mnfi.anr.msu.edu/resources/vegetation-circa-1800";
+
+
+    /* ========================================================
+       MICHIGAN VEGETATION SERVICE
+       ======================================================== */
+
+    const michiganURL =
+
+      "https://gisp.mcgi.state.mi.us/arcgis/rest/services/EGLE/LandCoverType_1800/FeatureServer/0";
+
+
+    /* ========================================================
+       GPS VARIABLES
+       ======================================================== */
 
     let gpsMarker = null;
 
     let gpsAccuracyCircle = null;
 
     let watchID = null;
+
+    let gpsEnabled = false;
 
     let gpsHasCentered = false;
 
@@ -523,15 +549,6 @@
 
 
     /* ========================================================
-       MICHIGAN HISTORICAL VEGETATION SERVICE
-       ======================================================== */
-
-    const michiganURL =
-
-      "https://gisp.mcgi.state.mi.us/arcgis/rest/services/EGLE/LandCoverType_1800/FeatureServer/0";
-
-
-    /* ========================================================
        STATUS
        ======================================================== */
 
@@ -540,6 +557,273 @@
       document.getElementById(
         "status"
       ).innerHTML = message;
+
+    }
+
+
+    /* ========================================================
+       GPS DETAILS TOGGLE
+       ======================================================== */
+
+    function toggleGPSDetails() {
+
+      gpsDetailsVisible =
+        !gpsDetailsVisible;
+
+
+      const button =
+        document.getElementById(
+          "gpsDetailsButton"
+        );
+
+
+      if (gpsDetailsVisible) {
+
+        button.innerHTML =
+          "Hide GPS Details";
+
+        button.classList.add(
+          "active"
+        );
+
+        displayGPSDetails();
+
+      }
+
+      else {
+
+        button.innerHTML =
+          "GPS Details";
+
+        button.classList.remove(
+          "active"
+        );
+
+        displayGPSSummary();
+
+      }
+
+    }
+
+
+    /* ========================================================
+       DISPLAY GPS SUMMARY
+       ======================================================== */
+
+    function displayGPSSummary() {
+
+      if (!latestGPSData) {
+
+        setStatus(
+          "GPS off"
+        );
+
+        return;
+
+      }
+
+
+      const stateText =
+        latestGPSData.state ||
+        "Outside historical coverage";
+
+
+      setStatus(
+
+        "GPS active<br>" +
+
+        "Historical dataset: " +
+
+        stateText
+
+      );
+
+    }
+
+
+    /* ========================================================
+       DISPLAY GPS DETAILS
+       ======================================================== */
+
+    function displayGPSDetails() {
+
+      if (!latestGPSData) {
+
+        return;
+
+      }
+
+
+      const data =
+        latestGPSData;
+
+
+      const stateText =
+        data.state ||
+        "Outside historical coverage";
+
+
+      setStatus(
+
+        "GPS active<br>" +
+
+        "Latitude: " +
+        data.latitude.toFixed(6) +
+
+        "<br>" +
+
+        "Longitude: " +
+        data.longitude.toFixed(6) +
+
+        "<br>" +
+
+        "Accuracy: approximately " +
+        Math.round(data.accuracy) +
+        " meters" +
+
+        "<br>" +
+
+        "Historical dataset: " +
+        stateText
+
+      );
+
+    }
+
+
+    /* ========================================================
+       DETERMINE IF LOCATION IS IN MICHIGAN
+       ======================================================== */
+
+    function getHistoricalState(
+      latitude,
+      longitude
+    ) {
+
+      const inMichigan =
+
+        (
+          longitude >= -90.5 &&
+          longitude <= -82.0 &&
+          latitude >= 41.5 &&
+          latitude <= 49.0
+        );
+
+
+      if (inMichigan) {
+
+        return "Michigan";
+
+      }
+
+
+      return null;
+
+    }
+
+
+    /* ========================================================
+       STOP GPS
+       ======================================================== */
+
+    function stopGPS() {
+
+      if (watchID !== null) {
+
+        navigator.geolocation.clearWatch(
+          watchID
+        );
+
+        watchID = null;
+
+      }
+
+
+      gpsEnabled =
+        false;
+
+
+      gpsHasCentered =
+        false;
+
+
+      latestGPSData =
+        null;
+
+
+      lastVegetationPosition =
+        null;
+
+
+      lastState =
+        null;
+
+
+      if (gpsMarker) {
+
+        map.removeLayer(
+          gpsMarker
+        );
+
+        gpsMarker =
+          null;
+
+      }
+
+
+      if (gpsAccuracyCircle) {
+
+        map.removeLayer(
+          gpsAccuracyCircle
+        );
+
+        gpsAccuracyCircle =
+          null;
+
+      }
+
+
+      const gpsButton =
+        document.getElementById(
+          "gpsButton"
+        );
+
+
+      gpsButton.innerHTML =
+        "GPS OFF";
+
+
+      gpsButton.classList.remove(
+        "active"
+      );
+
+
+      const gpsDetailsButton =
+        document.getElementById(
+          "gpsDetailsButton"
+        );
+
+
+      gpsDetailsButton.style.display =
+        "none";
+
+
+      gpsDetailsVisible =
+        false;
+
+
+      gpsDetailsButton.innerHTML =
+        "GPS Details";
+
+
+      gpsDetailsButton.classList.remove(
+        "active"
+      );
+
+
+      setStatus(
+        "GPS off"
+      );
 
     }
 
@@ -554,13 +838,12 @@
 
         stopGPS();
 
-      }
-
-      else {
-
-        startGPS();
+        return;
 
       }
+
+
+      startGPS();
 
     }
 
@@ -582,7 +865,28 @@
       }
 
 
-      gpsEnabled = true;
+      gpsEnabled =
+        true;
+
+
+      gpsHasCentered =
+        false;
+
+
+      lastMapCenterTime =
+        0;
+
+
+      lastVegetationCenter =
+        null;
+
+
+      lastVegetationPosition =
+        null;
+
+
+      latestGPSData =
+        null;
 
 
       const gpsButton =
@@ -594,28 +898,10 @@
       gpsButton.innerHTML =
         "GPS ON";
 
+
       gpsButton.classList.add(
         "active"
       );
-
-
-      gpsHasCentered =
-        false;
-
-      lastMapCenterTime =
-        0;
-
-      lastVegetationCenter =
-        null;
-
-      lastVegetationPosition =
-        null;
-
-      gpsDetailsVisible =
-        false;
-
-      latestGPSData =
-        null;
 
 
       const gpsDetailsButton =
@@ -626,6 +912,10 @@
 
       gpsDetailsButton.style.display =
         "none";
+
+
+      gpsDetailsVisible =
+        false;
 
 
       gpsDetailsButton.innerHTML =
@@ -655,6 +945,11 @@
         navigator.geolocation.watchPosition(
 
           function(position) {
+
+            /*
+             * If the user switched GPS off while a
+             * position was being processed, ignore it.
+             */
 
             if (!gpsEnabled) {
 
@@ -790,9 +1085,6 @@
 
               if (vegetationVisible) {
 
-                lastVegetationCenter =
-                  null;
-
                 loadVegetation();
 
               }
@@ -827,7 +1119,7 @@
 
 
             /* ----------------------------------------------
-               DETERMINE MICHIGAN COVERAGE
+               DETERMINE STATE
                ---------------------------------------------- */
 
             const state =
@@ -944,284 +1236,6 @@
 
 
     /* ========================================================
-       STOP GPS
-       ======================================================== */
-
-    function stopGPS() {
-
-      gpsEnabled =
-        false;
-
-
-      if (watchID !== null) {
-
-        navigator.geolocation.clearWatch(
-          watchID
-        );
-
-        watchID =
-          null;
-
-      }
-
-
-      if (gpsMarker) {
-
-        map.removeLayer(
-          gpsMarker
-        );
-
-        gpsMarker =
-          null;
-
-      }
-
-
-      if (gpsAccuracyCircle) {
-
-        map.removeLayer(
-          gpsAccuracyCircle
-        );
-
-        gpsAccuracyCircle =
-          null;
-
-      }
-
-
-      gpsHasCentered =
-        false;
-
-      latestGPSData =
-        null;
-
-      lastVegetationPosition =
-        null;
-
-      lastState =
-        null;
-
-      gpsDetailsVisible =
-        false;
-
-
-      const gpsButton =
-        document.getElementById(
-          "gpsButton"
-        );
-
-
-      gpsButton.innerHTML =
-        "GPS OFF";
-
-      gpsButton.classList.remove(
-        "active"
-      );
-
-
-      const gpsDetailsButton =
-        document.getElementById(
-          "gpsDetailsButton"
-        );
-
-
-      gpsDetailsButton.style.display =
-        "none";
-
-
-      gpsDetailsButton.innerHTML =
-        "GPS Details";
-
-
-      gpsDetailsButton.classList.remove(
-        "active"
-      );
-
-
-      if (currentVegetationVisible) {
-
-        document.getElementById(
-          "currentType"
-        ).innerHTML =
-          "GPS is off";
-
-
-        document.getElementById(
-          "currentDetails"
-        ).innerHTML =
-          "Turn GPS on to identify the historical vegetation at your location.";
-
-      }
-
-
-      setStatus(
-        "GPS OFF"
-      );
-
-    }
-
-
-    /* ========================================================
-       GPS DETAILS TOGGLE
-       ======================================================== */
-
-    function toggleGPSDetails() {
-
-      gpsDetailsVisible =
-        !gpsDetailsVisible;
-
-      const button =
-        document.getElementById(
-          "gpsDetailsButton"
-        );
-
-
-      if (gpsDetailsVisible) {
-
-        button.innerHTML =
-          "Hide GPS Details";
-
-        button.classList.add(
-          "active"
-        );
-
-        displayGPSDetails();
-
-      }
-
-      else {
-
-        button.innerHTML =
-          "GPS Details";
-
-        button.classList.remove(
-          "active"
-        );
-
-        displayGPSSummary();
-
-      }
-
-    }
-
-
-    /* ========================================================
-       DISPLAY GPS SUMMARY
-       ======================================================== */
-
-    function displayGPSSummary() {
-
-      if (!latestGPSData) {
-
-        setStatus(
-          "GPS is on — waiting for location..."
-        );
-
-        return;
-
-      }
-
-
-      const stateText =
-        latestGPSData.state ||
-        "Outside Michigan historical coverage";
-
-
-      setStatus(
-
-        "GPS active<br>" +
-
-        "Historical dataset: " +
-
-        stateText
-
-      );
-
-    }
-
-
-    /* ========================================================
-       DISPLAY GPS DETAILS
-       ======================================================== */
-
-    function displayGPSDetails() {
-
-      if (!latestGPSData) {
-
-        return;
-
-      }
-
-
-      const data =
-        latestGPSData;
-
-
-      const stateText =
-        data.state ||
-        "Outside Michigan historical coverage";
-
-
-      setStatus(
-
-        "GPS active<br>" +
-
-        "Latitude: " +
-        data.latitude.toFixed(6) +
-
-        "<br>" +
-
-        "Longitude: " +
-        data.longitude.toFixed(6) +
-
-        "<br>" +
-
-        "Accuracy: approximately " +
-        Math.round(data.accuracy) +
-        " meters" +
-
-        "<br>" +
-
-        "Historical dataset: " +
-        stateText
-
-      );
-
-    }
-
-
-    /* ========================================================
-       DETERMINE MICHIGAN COVERAGE
-       ======================================================== */
-
-    function getHistoricalState(
-      latitude,
-      longitude
-    ) {
-
-      const inMichigan =
-
-        (
-          longitude >= -90.5 &&
-          longitude <= -82.0 &&
-          latitude >= 41.5 &&
-          latitude <= 49.0
-        );
-
-
-      if (inMichigan) {
-
-        return "Michigan";
-
-      }
-
-
-      return null;
-
-    }
-
-
-    /* ========================================================
        VEGETATION MAP TOGGLE
        ======================================================== */
 
@@ -1275,7 +1289,7 @@
 
 
       setStatus(
-        "Loading Michigan historical vegetation..."
+        "Loading historical vegetation..."
       );
 
 
@@ -1289,7 +1303,7 @@
 
 
     /* ========================================================
-       LOAD MICHIGAN VEGETATION MAP
+       LOAD VEGETATION MAP
        ======================================================== */
 
     async function loadVegetation() {
@@ -1333,6 +1347,10 @@
       }
 
 
+      /*
+       * Avoid unnecessarily querying the same area.
+       */
+
       if (lastVegetationCenter) {
 
         const movedDistance =
@@ -1373,6 +1391,14 @@
       const north =
         bounds.getNorth();
 
+
+      const outFields =
+        "VEGCODE,LEGCODE,COVERTYPE,CNTY_NAME";
+
+
+      /*
+       * ArcGIS envelope.
+       */
 
       const geometry =
         JSON.stringify({
@@ -1418,7 +1444,7 @@
             "esriSpatialRelIntersects",
 
           outFields:
-            "VEGCODE,LEGCODE,COVERTYPE,CNTY_NAME",
+            outFields,
 
           returnGeometry:
             "true",
@@ -1548,20 +1574,30 @@
                     feature.properties;
 
 
+                  const coverType =
+                    p.COVERTYPE ||
+                    "Unknown";
+
+
+                  const formattedName =
+                    formatVegetationName(
+                      coverType
+                    );
+
+
                   const popup =
 
                     "<strong>" +
+
                     "Michigan Circa-1800 Vegetation" +
+
                     "</strong>" +
 
                     "<br><br>" +
 
                     "<strong>Historical cover type:</strong><br>" +
 
-                    (
-                      p.COVERTYPE ||
-                      "Unknown"
-                    ) +
+                    formattedName +
 
                     "<br><br>" +
 
@@ -1579,7 +1615,23 @@
                     (
                       p.CNTY_NAME ||
                       "Unknown"
-                    );
+                    ) +
+
+                    "<br>" +
+
+                    "<a class='mnfiLink' " +
+
+                    "href='" +
+                    mnfiVegetationURL +
+                    "' " +
+
+                    "target='_blank' " +
+
+                    "rel='noopener noreferrer'>" +
+
+                    "View MNFI Vegetation circa 1800 ↗" +
+
+                    "</a>";
 
 
                   layer.bindPopup(
@@ -1734,7 +1786,8 @@
         document.getElementById(
           "currentDetails"
         ).innerHTML =
-          "Your current Michigan location is needed to identify the historical vegetation.";
+
+          "Your current location is needed to identify the historical vegetation.";
 
         return;
 
@@ -1767,17 +1820,6 @@
     ) {
 
       if (!gpsEnabled) {
-
-        document.getElementById(
-          "currentType"
-        ).innerHTML =
-          "GPS is off";
-
-
-        document.getElementById(
-          "currentDetails"
-        ).innerHTML =
-          "Turn GPS on to identify the historical vegetation at your location.";
 
         return;
 
@@ -1826,12 +1868,21 @@
         document.getElementById(
           "currentDetails"
         ).innerHTML =
+
           "The current GPS location is outside the Michigan historical vegetation dataset.";
 
         return;
 
       }
 
+
+      const outFields =
+        "VEGCODE,LEGCODE,COVERTYPE,CNTY_NAME";
+
+
+      /*
+       * POINT QUERY
+       */
 
       const geometry =
         JSON.stringify({
@@ -1871,7 +1922,7 @@
             "esriSpatialRelIntersects",
 
           outFields:
-            "VEGCODE,LEGCODE,COVERTYPE,CNTY_NAME",
+            outFields,
 
           returnGeometry:
             "false",
@@ -1939,6 +1990,7 @@
           document.getElementById(
             "currentDetails"
           ).innerHTML =
+
             "No historical polygon was found at your GPS location.";
 
           return;
@@ -1965,13 +2017,17 @@
           "Unknown";
 
 
+        const formattedName =
+          formatVegetationName(
+            coverType
+          );
+
+
         document.getElementById(
           "currentType"
         ).innerHTML =
 
-          formatVegetationName(
-            coverType
-          );
+          formattedName;
 
 
         document.getElementById(
@@ -1988,7 +2044,23 @@
           "<br>" +
 
           "County: " +
-          county;
+          county +
+
+          "<br>" +
+
+          "<a class='mnfiLink' " +
+
+          "href='" +
+          mnfiVegetationURL +
+          "' " +
+
+          "target='_blank' " +
+
+          "rel='noopener noreferrer'>" +
+
+          "View MNFI Vegetation circa 1800 ↗" +
+
+          "</a>";
 
       }
 
