@@ -13,7 +13,9 @@
   <title>Historical Vegetation Navigator</title>
 
 
-  <!-- Leaflet -->
+  <!-- =====================================================
+       LEAFLET
+       ===================================================== -->
 
   <link
     rel="stylesheet"
@@ -46,7 +48,7 @@
 
 
     /* =====================================================
-       COMPACT CONTROLS
+       CONTROLS
        ===================================================== */
 
     #controls {
@@ -106,6 +108,13 @@
     button:active {
 
       background: #1f5035;
+
+    }
+
+
+    #gpsButton.active {
+
+      background: #245c9c;
 
     }
 
@@ -233,21 +242,21 @@
        MNFI COMMUNITY LINK
        ===================================================== */
 
-    .mnfiLink {
+    .mnfi-link {
 
       display: inline-block;
 
       margin-top: 8px;
 
-      padding: 6px 8px;
+      padding: 6px 9px;
+
+      border-radius: 5px;
 
       background: #2c6e49;
 
       color: white !important;
 
       text-decoration: none;
-
-      border-radius: 5px;
 
       font-weight: bold;
 
@@ -256,22 +265,30 @@
     }
 
 
-    .mnfiLink:hover {
+    .mnfi-link:hover {
 
       background: #1f5035;
 
     }
 
 
-    .tensionNote {
+    /* =====================================================
+       TENSION ZONE NOTE
+       ===================================================== */
 
-      margin-top: 5px;
+    .tension-note {
 
-      font-size: 10px;
+      margin-top: 6px;
+
+      padding-top: 5px;
+
+      border-top: 1px solid #ddd;
 
       color: #666;
 
-      line-height: 1.2;
+      font-size: 10px;
+
+      line-height: 1.25;
 
     }
 
@@ -359,11 +376,11 @@
       }
 
 
-      .mnfiLink {
+      .mnfi-link {
 
         font-size: 11px;
 
-        padding: 5px 7px;
+        padding: 5px 8px;
 
       }
 
@@ -377,9 +394,9 @@
 <body>
 
 
-  <!-- =======================================================
+  <!-- =====================================================
        CONTROLS
-       ======================================================= -->
+       ===================================================== -->
 
   <div id="controls">
 
@@ -426,7 +443,7 @@
 
     <div id="status">
 
-      GPS OFF
+      GPS off
 
     </div>
 
@@ -459,12 +476,16 @@
   </div>
 
 
-  <!-- MAP -->
+  <!-- =====================================================
+       MAP
+       ===================================================== -->
 
   <div id="map"></div>
 
 
-  <!-- Leaflet -->
+  <!-- =====================================================
+       LEAFLET
+       ===================================================== -->
 
   <script
     src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
@@ -474,22 +495,23 @@
   <script>
 
 
-    /* ========================================================
+    /* =====================================================
        MAP
-       ======================================================== */
+       ===================================================== */
 
-    const map = L.map("map").setView(
+    const map =
+      L.map("map").setView(
 
-      [44.5, -84.5],
+        [44.5, -84.5],
 
-      7
+        7
 
-    );
+      );
 
 
-    /* ========================================================
+    /* =====================================================
        BASEMAP
-       ======================================================== */
+       ===================================================== */
 
     L.tileLayer(
 
@@ -507,15 +529,17 @@
     ).addTo(map);
 
 
-    /* ========================================================
+    /* =====================================================
        GPS VARIABLES
-       ======================================================== */
+       ===================================================== */
 
     let gpsMarker = null;
 
     let gpsAccuracyCircle = null;
 
     let watchID = null;
+
+    let gpsEnabled = false;
 
     let gpsHasCentered = false;
 
@@ -528,9 +552,32 @@
     const gpsCenterInterval = 500;
 
 
-    /* ========================================================
+    /*
+     * IMPORTANT:
+     *
+     * When the user touches a vegetation polygon,
+     * automatic GPS recentering is temporarily suspended.
+     *
+     * This prevents map.setView() from immediately
+     * closing the Leaflet popup.
+     */
+
+    let userInteractingWithMap = false;
+
+    let popupInteractionTimer = null;
+
+
+    /*
+     * How long automatic GPS following remains paused
+     * after a polygon interaction.
+     */
+
+    const popupPauseDuration = 3000;
+
+
+    /* =====================================================
        VEGETATION VARIABLES
-       ======================================================== */
+       ===================================================== */
 
     let vegetationLayer = null;
 
@@ -539,9 +586,9 @@
     let lastVegetationCenter = null;
 
 
-    /* ========================================================
+    /* =====================================================
        CURRENT VEGETATION VARIABLES
-       ======================================================== */
+       ===================================================== */
 
     let currentVegetationVisible = false;
 
@@ -550,379 +597,18 @@
     let lastState = null;
 
 
-    /* ========================================================
-       HISTORICAL VEGETATION SERVICE
-       ======================================================== */
+    /* =====================================================
+       MICHIGAN MNFI CIRCA-1800 SERVICE
+       ===================================================== */
 
     const michiganURL =
 
       "https://gisp.mcgi.state.mi.us/arcgis/rest/services/EGLE/LandCoverType_1800/FeatureServer/0";
 
 
-    /* ========================================================
-       TENSION ZONE
-       ========================================================
-
-       TEMPORARY STRAIGHT-LINE APPROXIMATION
-
-       North of 43.5 N  = Northern
-       South of 43.5 N  = Southern
-
-       This is intentionally a simple approximation for now.
-       The actual Michigan floristic/climatic tension zone is
-       irregular rather than a straight east-west line.
-
-       ======================================================== */
-
-    const TENSION_ZONE_LATITUDE = 43.5;
-
-
-    /* ========================================================
-       MNFI COMMUNITY URLS
-       ========================================================
-
-       These are actual MNFI community-description pages.
-
-       Only reasonably defensible matches are included.
-
-       ======================================================== */
-
-    const MNFI_COMMUNITIES = {
-
-      "mesic northern forest":
-        "https://mnfi.anr.msu.edu/communities/description/10687/mesic-northern-forest",
-
-      "mesic southern forest":
-        "https://mnfi.anr.msu.edu/communities/description/10684/Mesic-Southern-Forest",
-
-      "dry-mesic northern forest":
-        "https://mnfi.anr.msu.edu/communities/description/10688/dry-mesic-northern-forest",
-
-      "dry northern forest":
-        "https://mnfi.anr.msu.edu/communities/description/10689/Dry-Northern-Forest/1000",
-
-      "dry southern forest":
-        "https://mnfi.anr.msu.edu/communities/description/10686",
-
-      "dry-mesic southern forest":
-        "https://mnfi.anr.msu.edu/communities/description/10685/dry-mesic-southern-forest",
-
-      "boreal forest":
-        "https://mnfi.anr.msu.edu/communities/description/10690/boreal-forest/",
-
-      "northern hardwood swamp":
-        "https://mnfi.anr.msu.edu/communities/description/10659/northern-hardwood-swamp",
-
-      "rich conifer swamp":
-        "https://mnfi.anr.msu.edu/communities/description/10652/Rich-Conifer-Swamp",
-
-      "oak-pine barrens":
-        "https://mnfi.anr.msu.edu/communities/description/10692/Oak-pine-barrens",
-
-      "oak barrens":
-        "https://mnfi.anr.msu.edu/communities/description/10693/Oak-barrens",
-
-      "pine barrens":
-        "https://mnfi.anr.msu.edu/communities/description/10694",
-
-      "dry sand prairie":
-        "https://mnfi.anr.msu.edu/communities/description/10698/Dry-Sand-Prairie/1000"
-
-    };
-
-
-    /* ========================================================
-       FOREST TYPE -> COMMUNITY CLASSIFICATION
-       ========================================================
-
-       The circa-1800 vegetation layer and the modern MNFI
-       natural-community classification are NOT identical
-       classification systems.
-
-       Therefore this table deliberately uses only defensible
-       associations.
-
-       ======================================================== */
-
-    const MICHIGAN_COMMUNITY_MAP = {
-
-
-      /*
-       * MESIC NORTHERN / SOUTHERN
-       *
-       * These are explicitly divided by the temporary
-       * straight-line tension-zone approximation.
-       */
-
-      "BEECH-SUGAR MAPLE FOREST":
-        {
-          tensionZone: true,
-          north:
-            "Mesic Northern Forest",
-          south:
-            "Mesic Southern Forest"
-        },
-
-
-      "SUGAR MAPLE-BASSWOOD FOREST":
-        {
-          tensionZone: true,
-          north:
-            "Mesic Northern Forest",
-          south:
-            "Mesic Southern Forest"
-        },
-
-
-      /*
-       * These are strongly associated with mesic northern
-       * forest.
-       */
-
-      "BEECH-SUGAR MAPLE-HEMLOCK FOREST":
-        {
-          fixed:
-            "Mesic Northern Forest"
-        },
-
-
-      "SUGAR MAPLE-HEMLOCK FOREST":
-        {
-          fixed:
-            "Mesic Northern Forest"
-        },
-
-
-      "SUGAR MAPLE-YELLOW BIRCH FOREST":
-        {
-          fixed:
-            "Mesic Northern Forest"
-        },
-
-
-      "HEMLOCK-YELLOW BIRCH FOREST":
-        {
-          fixed:
-            "Mesic Northern Forest"
-        },
-
-
-      "HEMLOCK-WHITE PINE FOREST":
-        {
-          fixed:
-            "Mesic Northern Forest"
-        },
-
-
-      "WHITE PINE-MIXED HARDWOOD FOREST":
-        {
-          fixed:
-            "Mesic Northern Forest"
-        },
-
-
-      /*
-       * White pine / oak systems are better treated as
-       * dry-mesic northern forest in this simplified
-       * crosswalk.
-       */
-
-      "WHITE PINE-WHITE OAK FOREST":
-        {
-          fixed:
-            "Dry-mesic Northern Forest"
-        },
-
-
-      "WHITE PINE-RED PINE FOREST":
-        {
-          fixed:
-            "Dry-mesic Northern Forest"
-        },
-
-
-      "MIXED PINE-OAK FOREST":
-        {
-          fixed:
-            "Dry-mesic Northern Forest"
-        },
-
-
-      /*
-       * Pine systems
-       */
-
-      "JACK PINE-RED PINE FOREST":
-        {
-          fixed:
-            "Dry Northern Forest"
-        },
-
-
-      "PINE BARRENS":
-        {
-          fixed:
-            "Pine Barrens"
-        },
-
-
-      /*
-       * Oak systems
-       *
-       * Oak-Hickory and Mixed Oak are divided according to
-       * the same temporary straight-line tension-zone concept.
-       *
-       * North:
-       *     Dry-mesic Northern Forest
-       *
-       * South:
-       *     Dry-mesic Southern Forest
-       */
-
-      "OAK-HICKORY FOREST":
-        {
-          tensionZone: true,
-          north:
-            "Dry-mesic Northern Forest",
-          south:
-            "Dry-mesic Southern Forest"
-        },
-
-
-      "MIXED OAK FOREST":
-        {
-          tensionZone: true,
-          north:
-            "Dry-mesic Northern Forest",
-          south:
-            "Dry-mesic Southern Forest"
-        },
-
-
-      /*
-       * Oak savanna/barrens.
-       */
-
-      "MIXED OAK SAVANNA":
-        {
-          tensionZone: true,
-          north:
-            "Oak-Pine Barrens",
-          south:
-            "Oak Barrens"
-        },
-
-
-      "OAK/PINE BARRENS":
-        {
-          fixed:
-            "Oak-Pine Barrens"
-        },
-
-
-      /*
-       * Wetland forest systems
-       */
-
-      "BLACK ASH SWAMP":
-        {
-          fixed:
-            "Northern Hardwood Swamp"
-        },
-
-
-      "CEDAR SWAMP":
-        {
-          fixed:
-            "Rich Conifer Swamp"
-        },
-
-
-      "MIXED CONIFER SWAMP":
-        {
-          fixed:
-            "Rich Conifer Swamp"
-        },
-
-
-      /*
-       * Spruce-fir-cedar is closest to the boreal/conifer
-       * portion of the MNFI classification.
-       */
-
-      "SPRUCE-FIR-CEDAR FOREST":
-        {
-          fixed:
-            "Boreal Forest"
-        },
-
-
-      /*
-       * Aspen-birch is retained without an MNFI community
-       * link because the circa-1800 cover class does not
-       * correspond cleanly to a single MNFI natural community.
-       */
-
-      "ASPEN-BIRCH FOREST":
-        {
-          none:
-            true
-        },
-
-
-      /*
-       * These are not forest communities and therefore
-       * intentionally do not receive forest-community links.
-       */
-
-      "EXPOSED BEDROCK":
-        {
-          none:
-            true
-        },
-
-      "GRASSLAND":
-        {
-          none:
-            true
-        },
-
-      "LAKE/RIVER":
-        {
-          none:
-            true
-        },
-
-      "MUSKEG/BOG":
-        {
-          none:
-            true
-        },
-
-      "SAND DUNE":
-        {
-          none:
-            true
-        },
-
-      "SHRUB SWAMP/EMERGENT MARSH":
-        {
-          none:
-            true
-        },
-
-      "WET PRAIRIE":
-        {
-          none:
-            true
-        }
-
-    };
-
-
-    /* ========================================================
+    /* =====================================================
        STATUS
-       ======================================================== */
+       ===================================================== */
 
     function setStatus(message) {
 
@@ -933,131 +619,46 @@
     }
 
 
-    /* ========================================================
-       GPS ON / OFF TOGGLE
-       ======================================================== */
+    /* =====================================================
+       PAUSE AUTOMATIC GPS CENTERING
+       ===================================================== */
 
-    function toggleGPS() {
+    function pauseGPSAutoCentering() {
 
-      if (watchID === null) {
+      userInteractingWithMap = true;
 
-        startGPS();
 
-      }
+      clearTimeout(
+        popupInteractionTimer
+      );
 
-      else {
 
-        stopGPS();
+      popupInteractionTimer =
 
-      }
+        setTimeout(
+
+          function() {
+
+            userInteractingWithMap = false;
+
+          },
+
+          popupPauseDuration
+
+        );
 
     }
 
 
-    /* ========================================================
-       STOP GPS
-       ======================================================== */
-
-    function stopGPS() {
-
-      if (watchID !== null) {
-
-        navigator.geolocation.clearWatch(
-          watchID
-        );
-
-      }
-
-
-      watchID =
-        null;
-
-
-      gpsHasCentered =
-        false;
-
-
-      previousGPSPosition =
-        null;
-
-
-      latestGPSData =
-        null;
-
-
-      gpsDetailsVisible =
-        false;
-
-
-      const gpsButton =
-        document.getElementById(
-          "gpsButton"
-        );
-
-
-      gpsButton.innerHTML =
-        "GPS OFF";
-
-
-      gpsButton.classList.remove(
-        "active"
-      );
-
-
-      const gpsDetailsButton =
-        document.getElementById(
-          "gpsDetailsButton"
-        );
-
-
-      gpsDetailsButton.style.display =
-        "none";
-
-
-      gpsDetailsButton.classList.remove(
-        "active"
-      );
-
-
-      if (gpsMarker) {
-
-        map.removeLayer(
-          gpsMarker
-        );
-
-        gpsMarker =
-          null;
-
-      }
-
-
-      if (gpsAccuracyCircle) {
-
-        map.removeLayer(
-          gpsAccuracyCircle
-        );
-
-        gpsAccuracyCircle =
-          null;
-
-      }
-
-
-      setStatus(
-        "GPS OFF"
-      );
-
-    }
-
-
-    /* ========================================================
+    /* =====================================================
        GPS DETAILS TOGGLE
-       ======================================================== */
+       ===================================================== */
 
     function toggleGPSDetails() {
 
       gpsDetailsVisible =
         !gpsDetailsVisible;
+
 
       const button =
         document.getElementById(
@@ -1094,16 +695,16 @@
     }
 
 
-    /* ========================================================
+    /* =====================================================
        DISPLAY GPS SUMMARY
-       ======================================================== */
+       ===================================================== */
 
     function displayGPSSummary() {
 
       if (!latestGPSData) {
 
         setStatus(
-          "GPS OFF"
+          "GPS off"
         );
 
         return;
@@ -1113,7 +714,7 @@
 
       const stateText =
         latestGPSData.state ||
-        "Outside Michigan historical coverage";
+        "Outside current historical coverage";
 
 
       setStatus(
@@ -1129,9 +730,9 @@
     }
 
 
-    /* ========================================================
+    /* =====================================================
        DISPLAY GPS DETAILS
-       ======================================================== */
+       ===================================================== */
 
     function displayGPSDetails() {
 
@@ -1148,7 +749,7 @@
 
       const stateText =
         data.state ||
-        "Outside Michigan historical coverage";
+        "Outside current historical coverage";
 
 
       setStatus(
@@ -1179,22 +780,29 @@
     }
 
 
-    /* ========================================================
+    /* =====================================================
        DETERMINE MICHIGAN COVERAGE
-       ======================================================== */
+       ===================================================== */
 
     function getHistoricalState(
+
       latitude,
       longitude
+
     ) {
 
       const inMichigan =
 
         (
+
           longitude >= -90.5 &&
+
           longitude <= -82.0 &&
+
           latitude >= 41.5 &&
+
           latitude <= 49.0
+
         );
 
 
@@ -1210,14 +818,137 @@
     }
 
 
-    /* ========================================================
-       GET COMMUNITY FOR A POLYGON
-       ======================================================== */
+    /* =====================================================
+       FLORISTIC / CLIMATIC TENSION ZONE
+       ===================================================== */
+
+    /*
+     * This is intentionally a SIMPLE STRAIGHT LINE
+     * approximation for the current version.
+     *
+     * Points NORTH of this line are treated as
+     * northern communities.
+     *
+     * Points SOUTH of this line are treated as
+     * southern communities.
+     *
+     * The line is approximately:
+     *
+     *   43.55 N at -86.0 W
+     *   43.10 N at -84.0 W
+     *   42.75 N at -82.0 W
+     *
+     * This is NOT intended to represent the actual
+     * ecological boundary at fine scale.
+     */
+
+    function tensionZoneLatitude(longitude) {
+
+      /*
+       * Straight-line interpolation.
+       */
+
+      const westLon =
+        -86.0;
+
+      const eastLon =
+        -82.0;
+
+      const westLat =
+        43.55;
+
+      const eastLat =
+        42.75;
+
+
+      const fraction =
+
+        (
+          longitude -
+          westLon
+        ) /
+
+        (
+          eastLon -
+          westLon
+        );
+
+
+      return (
+
+        westLat +
+
+        fraction *
+        (
+          eastLat -
+          westLat
+        )
+
+      );
+
+    }
+
+
+    function isSouthOfTensionZone(
+
+      latitude,
+      longitude
+
+    ) {
+
+      return (
+
+        latitude <
+        tensionZoneLatitude(
+          longitude
+        )
+
+      );
+
+    }
+
+
+    /* =====================================================
+       MNFI COMMUNITY PAGE LINKS
+       ===================================================== */
+
+    /*
+     * These are MNFI's current natural-community
+     * description pages.
+     *
+     * Some circa-1800 map cover types correspond
+     * directly to a modern MNFI community.
+     *
+     * The tension-zone-sensitive communities are
+     * handled separately below.
+     */
+
+    const mnfiCommunityURLs = {
+
+      "mesic northern forest":
+        "https://mnfi.anr.msu.edu/communities/description/10687/mesic-northern-forest",
+
+      "dry-mesic northern forest":
+        "https://mnfi.anr.msu.edu/communities/description/10688/dry-mesic-northern-forest",
+
+      "dry-mesic southern forest":
+        "https://mnfi.anr.msu.edu/communities/description/10685/dry-mesic-southern-forest",
+
+      "mesic southern forest":
+        "https://mnfi.anr.msu.edu/communities/description/10686/mesic-southern-forest"
+
+    };
+
+
+    /* =====================================================
+       DETERMINE MNFI COMMUNITY
+       ===================================================== */
 
     function getMNFICommunity(
 
       coverType,
-      latitude
+      latitude,
+      longitude
 
     ) {
 
@@ -1228,58 +959,58 @@
       }
 
 
-      const key =
+      const type =
+
         String(coverType)
           .trim()
           .toUpperCase();
 
 
-      const entry =
-        MICHIGAN_COMMUNITY_MAP[key];
+      const south =
 
+        isSouthOfTensionZone(
 
-      if (!entry) {
+          latitude,
+          longitude
 
-        return null;
-
-      }
-
-
-      /*
-       * Explicitly no community mapping.
-       */
-
-      if (entry.none) {
-
-        return null;
-
-      }
+        );
 
 
       /*
-       * Location-dependent community.
+       * ---------------------------------------------------
+       * BEECH-SUGAR MAPLE FOREST
+       * ---------------------------------------------------
+       *
+       * This is the most important tension-zone case.
+       *
+       * NORTH:
+       * Mesic Northern Forest
+       *
+       * SOUTH:
+       * Mesic Southern Forest
        */
 
-      if (entry.tensionZone) {
+      if (
 
-        if (
-          latitude >=
-          TENSION_ZONE_LATITUDE
-        ) {
+        type ===
+        "BEECH-SUGAR MAPLE FOREST"
+
+      ) {
+
+        if (south) {
 
           return {
 
             name:
-              entry.north,
+              "Mesic Southern Forest",
 
             url:
-              MNFI_COMMUNITIES[
-                entry.north
-                  .toLowerCase()
+              mnfiCommunityURLs[
+                "mesic southern forest"
               ],
 
-            region:
-              "North of the approximate tension zone"
+            tensionSensitive:
+              true
 
           };
 
@@ -1290,16 +1021,15 @@
           return {
 
             name:
-              entry.south,
+              "Mesic Northern Forest",
 
             url:
-              MNFI_COMMUNITIES[
-                entry.south
-                  .toLowerCase()
+              mnfiCommunityURLs[
+                "mesic northern forest"
               ],
 
-            region:
-              "South of the approximate tension zone"
+            tensionSensitive:
+              true
 
           };
 
@@ -1309,49 +1039,462 @@
 
 
       /*
-       * Fixed community.
+       * ---------------------------------------------------
+       * BEECH-SUGAR MAPLE-HEMLOCK FOREST
+       * ---------------------------------------------------
+       *
+       * Treated as northern mesic forest.
        */
 
-      if (entry.fixed) {
+      if (
+
+        type ===
+        "BEECH-SUGAR MAPLE-HEMLOCK FOREST"
+
+      ) {
 
         return {
 
           name:
-            entry.fixed,
+            "Mesic Northern Forest",
 
           url:
-            MNFI_COMMUNITIES[
-              entry.fixed
-                .toLowerCase()
+            mnfiCommunityURLs[
+              "mesic northern forest"
             ],
 
-          region:
-            null
+          tensionSensitive:
+            false
 
         };
 
       }
 
 
+      /*
+       * ---------------------------------------------------
+       * SUGAR MAPLE-BASSWOOD FOREST
+       * ---------------------------------------------------
+       *
+       * Generally mapped to mesic northern forest
+       * in this simplified community-linking system.
+       */
+
+      if (
+
+        type ===
+        "SUGAR MAPLE-BASSWOOD FOREST"
+
+      ) {
+
+        return {
+
+          name:
+            "Mesic Northern Forest",
+
+          url:
+            mnfiCommunityURLs[
+              "mesic northern forest"
+            ],
+
+          tensionSensitive:
+            false
+
+        };
+
+      }
+
+
+      /*
+       * ---------------------------------------------------
+       * SUGAR MAPLE-HEMLOCK FOREST
+       * ---------------------------------------------------
+       */
+
+      if (
+
+        type ===
+        "SUGAR MAPLE-HEMLOCK FOREST"
+
+      ) {
+
+        return {
+
+          name:
+            "Mesic Northern Forest",
+
+          url:
+            mnfiCommunityURLs[
+              "mesic northern forest"
+            ],
+
+          tensionSensitive:
+            false
+
+        };
+
+      }
+
+
+      /*
+       * ---------------------------------------------------
+       * SUGAR MAPLE-YELLOW BIRCH FOREST
+       * ---------------------------------------------------
+       */
+
+      if (
+
+        type ===
+        "SUGAR MAPLE-YELLOW BIRCH FOREST"
+
+      ) {
+
+        return {
+
+          name:
+            "Mesic Northern Forest",
+
+          url:
+            mnfiCommunityURLs[
+              "mesic northern forest"
+            ],
+
+          tensionSensitive:
+            false
+
+        };
+
+      }
+
+
+      /*
+       * ---------------------------------------------------
+       * OAK-HICKORY FOREST
+       * ---------------------------------------------------
+       *
+       * For now this is linked to Dry-mesic Southern
+       * Forest because the circa-1800 cover type is
+       * most closely associated with the southern
+       * oak-dominated forest community.
+       */
+
+      if (
+
+        type ===
+        "OAK-HICKORY FOREST"
+
+      ) {
+
+        return {
+
+          name:
+            "Dry-mesic Southern Forest",
+
+          url:
+            mnfiCommunityURLs[
+              "dry-mesic southern forest"
+            ],
+
+          tensionSensitive:
+            false
+
+        };
+
+      }
+
+
+      /*
+       * ---------------------------------------------------
+       * MIXED OAK FOREST
+       * ---------------------------------------------------
+       */
+
+      if (
+
+        type ===
+        "MIXED OAK FOREST"
+
+      ) {
+
+        return {
+
+          name:
+            south
+              ? "Dry-mesic Southern Forest"
+              : "Dry-mesic Northern Forest",
+
+          url:
+            south
+
+              ? mnfiCommunityURLs[
+                  "dry-mesic southern forest"
+                ]
+
+              : mnfiCommunityURLs[
+                  "dry-mesic northern forest"
+                ],
+
+          tensionSensitive:
+            true
+
+        };
+
+      }
+
+
+      /*
+       * ---------------------------------------------------
+       * MIXED PINE-OAK FOREST
+       * ---------------------------------------------------
+       */
+
+      if (
+
+        type ===
+        "MIXED PINE-OAK FOREST"
+
+      ) {
+
+        return {
+
+          name:
+            "Dry-mesic Northern Forest",
+
+          url:
+            mnfiCommunityURLs[
+              "dry-mesic northern forest"
+            ],
+
+          tensionSensitive:
+            false
+
+        };
+
+      }
+
+
+      /*
+       * ---------------------------------------------------
+       * WHITE PINE-WHITE OAK FOREST
+       * ---------------------------------------------------
+       */
+
+      if (
+
+        type ===
+        "WHITE PINE-WHITE OAK FOREST"
+
+      ) {
+
+        return {
+
+          name:
+            "Dry-mesic Northern Forest",
+
+          url:
+            mnfiCommunityURLs[
+              "dry-mesic northern forest"
+            ],
+
+          tensionSensitive:
+            false
+
+        };
+
+      }
+
+
+      /*
+       * ---------------------------------------------------
+       * WHITE PINE-MIXED HARDWOOD FOREST
+       * ---------------------------------------------------
+       */
+
+      if (
+
+        type ===
+        "WHITE PINE-MIXED HARDWOOD FOREST"
+
+      ) {
+
+        return {
+
+          name:
+            "Dry-mesic Northern Forest",
+
+          url:
+            mnfiCommunityURLs[
+              "dry-mesic northern forest"
+            ],
+
+          tensionSensitive:
+            false
+
+        };
+
+      }
+
+
+      /*
+       * ---------------------------------------------------
+       * WHITE PINE-RED PINE FOREST
+       * ---------------------------------------------------
+       */
+
+      if (
+
+        type ===
+        "WHITE PINE-RED PINE FOREST"
+
+      ) {
+
+        return {
+
+          name:
+            "Dry-mesic Northern Forest",
+
+          url:
+            mnfiCommunityURLs[
+              "dry-mesic northern forest"
+            ],
+
+          tensionSensitive:
+            false
+
+        };
+
+      }
+
+
+      /*
+       * ---------------------------------------------------
+       * JACK PINE-RED PINE FOREST
+       * ---------------------------------------------------
+       */
+
+      if (
+
+        type ===
+        "JACK PINE-RED PINE FOREST"
+
+      ) {
+
+        return {
+
+          name:
+            "Dry Northern Forest",
+
+          url:
+            "https://mnfi.anr.msu.edu/communities/description/10684/dry-northern-forest",
+
+          tensionSensitive:
+            false
+
+        };
+
+      }
+
+
+      /*
+       * ---------------------------------------------------
+       * HEMLOCK-WHITE PINE FOREST
+       * ---------------------------------------------------
+       */
+
+      if (
+
+        type ===
+        "HEMLOCK-WHITE PINE FOREST"
+
+      ) {
+
+        return {
+
+          name:
+            "Mesic Northern Forest",
+
+          url:
+            mnfiCommunityURLs[
+              "mesic northern forest"
+            ],
+
+          tensionSensitive:
+            false
+
+        };
+
+      }
+
+
+      /*
+       * ---------------------------------------------------
+       * HEMLOCK-YELLOW BIRCH FOREST
+       * ---------------------------------------------------
+       */
+
+      if (
+
+        type ===
+        "HEMLOCK-YELLOW BIRCH FOREST"
+
+      ) {
+
+        return {
+
+          name:
+            "Mesic Northern Forest",
+
+          url:
+            mnfiCommunityURLs[
+              "mesic northern forest"
+            ],
+
+          tensionSensitive:
+            false
+
+        };
+
+      }
+
+
+      /*
+       * ---------------------------------------------------
+       * ASPEN-BIRCH FOREST
+       * ---------------------------------------------------
+       *
+       * No direct community link is assigned here because
+       * this circa-1800 cover type does not map cleanly to
+       * one of the seven modern MNFI forest communities.
+       */
+
       return null;
 
     }
 
 
-    /* ========================================================
-       FORMAT MNFI LINK
-       ======================================================== */
+    /* =====================================================
+       CREATE MNFI LINK
+       ===================================================== */
 
     function createMNFILink(
 
-      community
+      coverType,
+      latitude,
+      longitude
 
     ) {
 
-      if (
-        !community ||
-        !community.url
-      ) {
+      const community =
+        getMNFICommunity(
+
+          coverType,
+          latitude,
+          longitude
+
+        );
+
+
+      if (!community) {
 
         return "";
 
@@ -1360,36 +1503,54 @@
 
       let html =
 
-        "<a " +
+        '<a class="mnfi-link" ' +
 
-        "class='mnfiLink' " +
-
-        "href='" +
+        'href="' +
         community.url +
-        "' " +
+        '" ' +
 
-        "target='_blank' " +
+        'target="_blank" ' +
 
-        "rel='noopener noreferrer'>" +
+        'rel="noopener noreferrer">' +
 
-        "View MNFI community profile →" +
+        "View MNFI community page" +
 
         "</a>";
 
 
-      if (community.region) {
+      /*
+       * Tell the user when the straight-line
+       * tension-zone rule affected the selection.
+       */
+
+      if (
+        community.tensionSensitive
+      ) {
+
+        const sideText =
+
+          isSouthOfTensionZone(
+            latitude,
+            longitude
+          )
+
+            ? "South of"
+            : "North of";
+
 
         html +=
 
-          "<div class='tensionNote'>" +
+          '<div class="tension-note">' +
 
-          community.region +
+          "Community selected as " +
 
-          " (" +
+          "<strong>" +
 
-          TENSION_ZONE_LATITUDE +
+          sideText +
 
-          "° N temporary straight-line boundary)" +
+          " the approximate floristic tension zone</strong> " +
+
+          "using the current straight-line approximation." +
 
           "</div>";
 
@@ -1401,40 +1562,30 @@
     }
 
 
-    /* ========================================================
-       CALCULATE POLYGON CENTER
-       ======================================================== */
+    /* =====================================================
+       GPS TOGGLE
+       ===================================================== */
 
-    function getFeatureCenter(
+    function toggleGPS() {
 
-      layer
+      if (gpsEnabled) {
 
-    ) {
-
-      try {
-
-        const center =
-          layer
-            .getBounds()
-            .getCenter();
-
-
-        return center;
+        stopGPS();
 
       }
 
-      catch(error) {
+      else {
 
-        return null;
+        startGPS();
 
       }
 
     }
 
 
-    /* ========================================================
+    /* =====================================================
        START GPS
-       ======================================================== */
+       ===================================================== */
 
     function startGPS() {
 
@@ -1449,27 +1600,8 @@
       }
 
 
-      gpsHasCentered =
-        false;
-
-      lastMapCenterTime =
-        0;
-
-      lastVegetationCenter =
-        null;
-
-      previousGPSPosition =
-        null;
-
-      lastVegetationPosition =
-        null;
-
-
-      gpsDetailsVisible =
-        false;
-
-      latestGPSData =
-        null;
+      gpsEnabled =
+        true;
 
 
       const gpsButton =
@@ -1481,10 +1613,29 @@
       gpsButton.innerHTML =
         "GPS ON";
 
-
       gpsButton.classList.add(
         "active"
       );
+
+
+      gpsHasCentered =
+        false;
+
+      lastMapCenterTime =
+        0;
+
+      lastVegetationCenter =
+        null;
+
+      lastVegetationPosition =
+        null;
+
+      latestGPSData =
+        null;
+
+
+      gpsDetailsVisible =
+        false;
 
 
       const gpsDetailsButton =
@@ -1521,9 +1672,22 @@
 
 
       watchID =
+
         navigator.geolocation.watchPosition(
 
           function(position) {
+
+            /*
+             * If GPS has been turned off while a
+             * callback was already queued, ignore it.
+             */
+
+            if (!gpsEnabled) {
+
+              return;
+
+            }
+
 
             const latitude =
               position.coords.latitude;
@@ -1542,13 +1706,14 @@
               ];
 
 
-            /* ----------------------------------------------
+            /* ---------------------------------------------
                GPS MARKER
-               ---------------------------------------------- */
+               --------------------------------------------- */
 
             if (!gpsMarker) {
 
               gpsMarker =
+
                 L.circleMarker(
 
                   gpsLatLng,
@@ -1580,13 +1745,14 @@
             }
 
 
-            /* ----------------------------------------------
+            /* ---------------------------------------------
                ACCURACY CIRCLE
-               ---------------------------------------------- */
+               --------------------------------------------- */
 
             if (!gpsAccuracyCircle) {
 
               gpsAccuracyCircle =
+
                 L.circle(
 
                   gpsLatLng,
@@ -1620,76 +1786,12 @@
             }
 
 
-            /* ----------------------------------------------
-               KEEP GPS DOT CENTERED
-               ---------------------------------------------- */
-
-            const now =
-              Date.now();
-
-
-            if (!gpsHasCentered) {
-
-              map.setView(
-
-                gpsLatLng,
-
-                15,
-
-                {
-                  animate: false
-                }
-
-              );
-
-
-              gpsHasCentered =
-                true;
-
-              lastMapCenterTime =
-                now;
-
-
-              if (vegetationVisible) {
-
-                loadVegetation();
-
-              }
-
-            }
-
-            else if (
-
-              now -
-              lastMapCenterTime >=
-              gpsCenterInterval
-
-            ) {
-
-              map.setView(
-
-                gpsLatLng,
-
-                map.getZoom(),
-
-                {
-                  animate: false
-                }
-
-              );
-
-
-              lastMapCenterTime =
-                now;
-
-            }
-
-
-            /* ----------------------------------------------
+            /* ---------------------------------------------
                DETERMINE STATE
-               ---------------------------------------------- */
+               --------------------------------------------- */
 
             const state =
+
               getHistoricalState(
 
                 latitude,
@@ -1702,9 +1804,9 @@
               state;
 
 
-            /* ----------------------------------------------
+            /* ---------------------------------------------
                STORE GPS INFORMATION
-               ---------------------------------------------- */
+               --------------------------------------------- */
 
             latestGPSData = {
 
@@ -1723,13 +1825,24 @@
             };
 
 
+            /* ---------------------------------------------
+               GPS DETAILS BUTTON
+               --------------------------------------------- */
+
+            const gpsDetailsButton =
+
+              document.getElementById(
+                "gpsDetailsButton"
+              );
+
+
             gpsDetailsButton.style.display =
               "inline-block";
 
 
-            /* ----------------------------------------------
+            /* ---------------------------------------------
                STATUS
-               ---------------------------------------------- */
+               --------------------------------------------- */
 
             if (gpsDetailsVisible) {
 
@@ -1744,11 +1857,104 @@
             }
 
 
-            /* ----------------------------------------------
-               CURRENT VEGETATION
-               ---------------------------------------------- */
+            /* ---------------------------------------------
+               KEEP GPS DOT CENTERED
+               ---------------------------------------------
+             *
+             * IMPORTANT:
+             *
+             * This is now conditional on
+             * userInteractingWithMap.
+             *
+             * When a polygon has just been touched,
+             * map.setView() will NOT run.
+             *
+             * Therefore the popup is allowed to remain
+             * open.
+             */
 
-            if (currentVegetationVisible) {
+            const now =
+              Date.now();
+
+
+            if (
+              !userInteractingWithMap
+            ) {
+
+              if (!gpsHasCentered) {
+
+                map.setView(
+
+                  gpsLatLng,
+
+                  15,
+
+                  {
+
+                    animate:
+                      false
+
+                  }
+
+                );
+
+
+                gpsHasCentered =
+                  true;
+
+                lastMapCenterTime =
+                  now;
+
+
+                if (
+                  vegetationVisible
+                ) {
+
+                  loadVegetation();
+
+                }
+
+              }
+
+              else if (
+
+                now -
+                lastMapCenterTime >=
+                gpsCenterInterval
+
+              ) {
+
+                map.setView(
+
+                  gpsLatLng,
+
+                  map.getZoom(),
+
+                  {
+
+                    animate:
+                      false
+
+                  }
+
+                );
+
+
+                lastMapCenterTime =
+                  now;
+
+              }
+
+            }
+
+
+            /* ---------------------------------------------
+               CURRENT VEGETATION
+               --------------------------------------------- */
+
+            if (
+              currentVegetationVisible
+            ) {
 
               updateCurrentVegetation(
 
@@ -1764,6 +1970,13 @@
 
           function(error) {
 
+            if (!gpsEnabled) {
+
+              return;
+
+            }
+
+
             setStatus(
 
               "GPS error: " +
@@ -1776,11 +1989,14 @@
 
           {
 
-            enableHighAccuracy: true,
+            enableHighAccuracy:
+              true,
 
-            maximumAge: 1000,
+            maximumAge:
+              1000,
 
-            timeout: 15000
+            timeout:
+              15000
 
           }
 
@@ -1789,9 +2005,102 @@
     }
 
 
-    /* ========================================================
-       VEGETATION MAP TOGGLE
-       ======================================================== */
+    /* =====================================================
+       STOP GPS
+       ===================================================== */
+
+    function stopGPS() {
+
+      gpsEnabled =
+        false;
+
+
+      if (watchID !== null) {
+
+        navigator.geolocation.clearWatch(
+          watchID
+        );
+
+        watchID =
+          null;
+
+      }
+
+
+      const gpsButton =
+        document.getElementById(
+          "gpsButton"
+        );
+
+
+      gpsButton.innerHTML =
+        "GPS OFF";
+
+      gpsButton.classList.remove(
+        "active"
+      );
+
+
+      const gpsDetailsButton =
+        document.getElementById(
+          "gpsDetailsButton"
+        );
+
+
+      gpsDetailsButton.style.display =
+        "none";
+
+
+      gpsDetailsVisible =
+        false;
+
+
+      latestGPSData =
+        null;
+
+
+      /*
+       * Remove GPS marker.
+       */
+
+      if (gpsMarker) {
+
+        map.removeLayer(
+          gpsMarker
+        );
+
+        gpsMarker =
+          null;
+
+      }
+
+
+      /*
+       * Remove accuracy circle.
+       */
+
+      if (gpsAccuracyCircle) {
+
+        map.removeLayer(
+          gpsAccuracyCircle
+        );
+
+        gpsAccuracyCircle =
+          null;
+
+      }
+
+
+      setStatus(
+        "GPS off"
+      );
+
+    }
+
+
+    /* =====================================================
+       VEGETATION TOGGLE
+       ===================================================== */
 
     function toggleVegetation() {
 
@@ -1825,7 +2134,9 @@
 
 
         setStatus(
-          "Historical vegetation OFF"
+          gpsEnabled
+            ? "GPS active"
+            : "Historical vegetation OFF"
         );
 
 
@@ -1856,9 +2167,9 @@
     }
 
 
-    /* ========================================================
-       LOAD VEGETATION MAP
-       ======================================================== */
+    /* =====================================================
+       LOAD VEGETATION
+       ===================================================== */
 
     async function loadVegetation() {
 
@@ -1888,7 +2199,7 @@
         );
 
 
-      if (!state) {
+      if (state !== "Michigan") {
 
         setStatus(
 
@@ -1908,6 +2219,7 @@
       if (lastVegetationCenter) {
 
         const movedDistance =
+
           map.distance(
 
             lastVegetationCenter,
@@ -1916,7 +2228,9 @@
           );
 
 
-        if (movedDistance < 250) {
+        if (
+          movedDistance < 250
+        ) {
 
           return;
 
@@ -1946,19 +2260,8 @@
         bounds.getNorth();
 
 
-      const url =
-        michiganURL;
-
-
-      const outFields =
-        "VEGCODE,LEGCODE,COVERTYPE,CNTY_NAME";
-
-
-      /*
-       * ArcGIS envelope.
-       */
-
       const geometry =
+
         JSON.stringify({
 
           xmin:
@@ -1984,6 +2287,7 @@
 
 
       const params =
+
         new URLSearchParams({
 
           where:
@@ -2002,7 +2306,7 @@
             "esriSpatialRelIntersects",
 
           outFields:
-            outFields,
+            "VEGCODE,LEGCODE,COVERTYPE,CNTY_NAME",
 
           returnGeometry:
             "true",
@@ -2019,9 +2323,10 @@
       try {
 
         const response =
+
           await fetch(
 
-            url +
+            michiganURL +
             "/query?" +
             params.toString()
 
@@ -2082,6 +2387,7 @@
 
 
         vegetationLayer =
+
           L.geoJSON(
 
             data,
@@ -2089,6 +2395,7 @@
             {
 
               style:
+
                 function(feature) {
 
                   const p =
@@ -2096,6 +2403,7 @@
 
 
                   const color =
+
                     getMichiganVegetationColor(
 
                       p.COVERTYPE
@@ -2123,6 +2431,7 @@
 
 
               onEachFeature:
+
                 function(
                   feature,
                   layer
@@ -2132,18 +2441,147 @@
                     feature.properties;
 
 
+                  /*
+                   * ------------------------------------------------
+                   * DETERMINE A REPRESENTATIVE POINT
+                   * ------------------------------------------------
+                   *
+                   * We need latitude/longitude so that the
+                   * tension-zone logic can determine whether
+                   * the clicked polygon should use a northern
+                   * or southern MNFI community page.
+                   */
+
+                  let polygonCenter;
+
+
+                  try {
+
+                    polygonCenter =
+                      layer.getBounds().getCenter();
+
+                  }
+
+                  catch(error) {
+
+                    polygonCenter =
+                      map.getCenter();
+
+                  }
+
+
+                  const clickLatitude =
+                    polygonCenter.lat;
+
+                  const clickLongitude =
+                    polygonCenter.lng;
+
+
                   const coverType =
                     p.COVERTYPE ||
                     "Unknown";
 
 
                   /*
-                   * Use the actual clicked location
-                   * when possible. This means a polygon
-                   * crossing the temporary tension-zone
-                   * line can resolve according to where
-                   * the user clicks.
+                   * ------------------------------------------------
+                   * COMMUNITY LINK
+                   * ------------------------------------------------
                    */
+
+                  const communityLink =
+
+                    createMNFILink(
+
+                      coverType,
+
+                      clickLatitude,
+
+                      clickLongitude
+
+                    );
+
+
+                  /*
+                   * ------------------------------------------------
+                   * POPUP
+                   * ------------------------------------------------
+                   */
+
+                  let popup =
+
+                    "<strong>" +
+
+                    "Michigan Circa-1800 Vegetation" +
+
+                    "</strong>" +
+
+                    "<br><br>" +
+
+                    "<strong>Historical cover type:</strong><br>" +
+
+                    coverType +
+
+                    "<br><br>" +
+
+                    "<strong>Vegetation code:</strong> " +
+
+                    (
+
+                      p.VEGCODE ||
+                      "Unknown"
+
+                    ) +
+
+                    "<br><br>" +
+
+                    "<strong>County:</strong> " +
+
+                    (
+
+                      p.CNTY_NAME ||
+                      "Unknown"
+
+                    );
+
+
+                  /*
+                   * Add the MNFI community link when
+                   * this historical cover type has a
+                   * reasonable modern community match.
+                   */
+
+                  popup +=
+                    communityLink;
+
+
+                  layer.bindPopup(
+
+                    popup,
+
+                    {
+
+                      /*
+                       * Keep the popup open as long as
+                       * possible during touch interaction.
+                       */
+
+                      closeButton:
+                        true,
+
+                      autoPan:
+                        true,
+
+                      autoPanPadding:
+                        [30, 30]
+
+                    }
+
+                  );
+
+
+                  /* ----------------------------------------------
+                     CLICK
+                     ---------------------------------------------- */
 
                   layer.on(
 
@@ -2151,116 +2589,65 @@
 
                     function(e) {
 
-                      const clickLatitude =
-                        e.latlng.lat;
+                      /*
+                       * THIS IS THE IMPORTANT FIX.
+                       *
+                       * Tell GPS following to stop calling
+                       * map.setView() for a short period.
+                       */
 
-
-                      const community =
-                        getMNFICommunity(
-
-                          coverType,
-
-                          clickLatitude
-
-                        );
-
-
-                      let popup =
-
-                        "<strong>" +
-
-                        "Michigan Circa-1800 Vegetation" +
-
-                        "</strong>" +
-
-                        "<br><br>" +
-
-                        "<strong>Historical cover type:</strong><br>" +
-
-                        coverType +
-
-                        "<br><br>" +
-
-                        "<strong>Vegetation code:</strong> " +
-
-                        (
-
-                          p.VEGCODE ||
-                          "Unknown"
-
-                        ) +
-
-                        "<br><br>" +
-
-                        "<strong>County:</strong> " +
-
-                        (
-
-                          p.CNTY_NAME ||
-                          "Unknown"
-
-                        );
+                      pauseGPSAutoCentering();
 
 
                       /*
-                       * MNFI COMMUNITY
+                       * Stop this click from bubbling into
+                       * the underlying map.
                        */
 
-                      if (community) {
+                      if (
+                        e.originalEvent
+                      ) {
 
-                        popup +=
-
-                          "<br><br>" +
-
-                          "<strong>MNFI natural community:</strong><br>" +
-
-                          community.name +
-
-                          createMNFILink(
-                            community
-                          );
+                        L.DomEvent.stopPropagation(
+                          e.originalEvent
+                        );
 
                       }
 
 
-                      else {
+                      /*
+                       * Explicitly open the popup here.
+                       * This makes touch behavior more
+                       * reliable on phones.
+                       */
 
-                        popup +=
-
-                          "<br><br>" +
-
-                          "<span style='color:#666'>" +
-
-                          "No direct MNFI natural-community " +
-
-                          "crosswalk assigned to this historical " +
-
-                          "cover type." +
-
-                          "</span>";
-
-                      }
-
-
-                      layer.bindPopup(
-
-                        popup,
-
-                        {
-
-                          maxWidth:
-                            300
-
-                        }
-
-                      ).openPopup(
-                        e.latlng
-                      );
+                      layer.openPopup();
 
                     }
 
                   );
 
+
+                  /* ----------------------------------------------
+                     TOUCH START
+                     ---------------------------------------------- */
+
+                  layer.on(
+
+                    "touchstart",
+
+                    function() {
+
+                      pauseGPSAutoCentering();
+
+                    }
+
+                  );
+
+
+                  /* ----------------------------------------------
+                     MOUSEOVER
+                     ---------------------------------------------- */
 
                   layer.on(
 
@@ -2286,6 +2673,10 @@
                   );
 
 
+                  /* ----------------------------------------------
+                     MOUSEOUT
+                     ---------------------------------------------- */
+
                   layer.on(
 
                     "mouseout",
@@ -2301,6 +2692,23 @@
                         );
 
                       }
+
+                    }
+
+                  );
+
+
+                  /* ----------------------------------------------
+                     POPUP OPEN
+                     ---------------------------------------------- */
+
+                  layer.on(
+
+                    "popupopen",
+
+                    function() {
+
+                      pauseGPSAutoCentering();
 
                     }
 
@@ -2336,8 +2744,10 @@
       catch(error) {
 
         console.error(
+
           "Vegetation loading error:",
           error
+
         );
 
 
@@ -2353,9 +2763,9 @@
     }
 
 
-    /* ========================================================
+    /* =====================================================
        CURRENT VEGETATION TOGGLE
-       ======================================================== */
+       ===================================================== */
 
     function toggleCurrentVegetation() {
 
@@ -2409,6 +2819,7 @@
         document.getElementById(
           "currentDetails"
         ).innerHTML =
+
           "Your current location is needed to identify the historical vegetation.";
 
         return;
@@ -2430,9 +2841,9 @@
     }
 
 
-    /* ========================================================
+    /* =====================================================
        UPDATE CURRENT VEGETATION
-       ======================================================== */
+       ===================================================== */
 
     async function updateCurrentVegetation(
 
@@ -2451,6 +2862,7 @@
 
 
       const positionKey =
+
         state +
         "|" +
         latitude.toFixed(5) +
@@ -2459,8 +2871,10 @@
 
 
       if (
+
         positionKey ===
         lastVegetationPosition
+
       ) {
 
         return;
@@ -2472,7 +2886,7 @@
         positionKey;
 
 
-      if (!state) {
+      if (state !== "Michigan") {
 
         document.getElementById(
           "currentType"
@@ -2483,6 +2897,7 @@
         document.getElementById(
           "currentDetails"
         ).innerHTML =
+
           "The current GPS location is outside the Michigan historical vegetation dataset.";
 
         return;
@@ -2490,19 +2905,8 @@
       }
 
 
-      const url =
-        michiganURL;
-
-
-      const outFields =
-        "VEGCODE,LEGCODE,COVERTYPE,CNTY_NAME";
-
-
-      /*
-       * POINT QUERY
-       */
-
       const geometry =
+
         JSON.stringify({
 
           x:
@@ -2522,6 +2926,7 @@
 
 
       const params =
+
         new URLSearchParams({
 
           where:
@@ -2540,7 +2945,7 @@
             "esriSpatialRelIntersects",
 
           outFields:
-            outFields,
+            "VEGCODE,LEGCODE,COVERTYPE,CNTY_NAME",
 
           returnGeometry:
             "false",
@@ -2557,9 +2962,10 @@
       try {
 
         const response =
+
           await fetch(
 
-            url +
+            michiganURL +
             "/query?" +
             params.toString()
 
@@ -2602,12 +3008,14 @@
           document.getElementById(
             "currentType"
           ).innerHTML =
+
             "No mapped historical vegetation";
 
 
           document.getElementById(
             "currentDetails"
           ).innerHTML =
+
             "No historical polygon was found at your GPS location.";
 
           return;
@@ -2659,16 +3067,19 @@
 
 
         /*
-         * Add the MNFI community classification
-         * to the current-location display too.
+         * Add the appropriate modern MNFI
+         * community classification when one exists.
          */
 
         const community =
+
           getMNFICommunity(
 
             coverType,
 
-            latitude
+            latitude,
+
+            longitude
 
           );
 
@@ -2679,46 +3090,53 @@
 
             "<br><br>" +
 
-            "<strong>MNFI natural community:</strong><br>" +
+            "<strong>MNFI community:</strong> " +
 
-            community.name +
-
-            "<br>" +
-
-            "<a " +
-
-            "class='mnfiLink' " +
-
-            "href='" +
-            community.url +
-            "' " +
-
-            "target='_blank' " +
-
-            "rel='noopener noreferrer'>" +
-
-            "View MNFI community profile →" +
-
-            "</a>";
+            community.name;
 
 
-          if (community.region) {
+          if (
+            community.tensionSensitive
+          ) {
 
             details +=
 
-              "<div class='tensionNote'>" +
+              "<br>" +
 
-              community.region +
+              (
 
-              " (" +
+                isSouthOfTensionZone(
+                  latitude,
+                  longitude
+                )
 
-              TENSION_ZONE_LATITUDE +
+                  ? "South of"
+                  : "North of"
 
-              "° N temporary straight-line boundary)" +
+              ) +
 
-              "</div>";
+              " approximate tension zone";
 
           }
+
+
+          details +=
+
+            "<br>" +
+
+            '<a class="mnfi-link" ' +
+
+            'href="' +
+            community.url +
+            '" ' +
+
+            'target="_blank" ' +
+
+            'rel="noopener noreferrer">' +
+
+            "View MNFI community page" +
+
+            "</a>";
 
         }
 
@@ -2757,9 +3175,9 @@
     }
 
 
-    /* ========================================================
+    /* =====================================================
        FORMAT VEGETATION NAME
-       ======================================================== */
+       ===================================================== */
 
     function formatVegetationName(
       name
@@ -2775,30 +3193,36 @@
       return name
         .toLowerCase()
         .replace(
+
           /\b\w/g,
+
           function(letter) {
 
             return letter.toUpperCase();
 
           }
+
         );
 
     }
 
 
-    /* ========================================================
+    /* =====================================================
        MICHIGAN VEGETATION COLORS
-       ======================================================== */
+       ===================================================== */
 
     function getMichiganVegetationColor(
       coverType
     ) {
 
       const key =
+
         coverType
+
           ? String(coverType)
               .trim()
               .toUpperCase()
+
           : "";
 
 
@@ -2910,11 +3334,12 @@
     }
 
 
-    /* ========================================================
-       RELOAD VEGETATION MAP WHEN MAP MOVES
-       ======================================================== */
+    /* =====================================================
+       MAP MOVE / VEGETATION RELOAD
+       ===================================================== */
 
-    let reloadTimer = null;
+    let reloadTimer =
+      null;
 
 
     map.on(
@@ -2936,6 +3361,7 @@
 
 
         reloadTimer =
+
           setTimeout(
 
             function() {
@@ -2947,6 +3373,44 @@
             750
 
           );
+
+      }
+
+    );
+
+
+    /* =====================================================
+       USER MAP INTERACTION
+       =====================================================
+       *
+       * If the user manually drags the map, we don't want
+       * the next GPS update to immediately yank the map
+       * back underneath their finger.
+       *
+       * This also makes exploring the historical layer
+       * much easier.
+       */
+
+    map.on(
+
+      "dragstart",
+
+      function() {
+
+        pauseGPSAutoCentering();
+
+      }
+
+    );
+
+
+    map.on(
+
+      "zoomstart",
+
+      function() {
+
+        pauseGPSAutoCentering();
 
       }
 
