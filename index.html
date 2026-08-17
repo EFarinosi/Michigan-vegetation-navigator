@@ -553,24 +553,14 @@
 
 
     /*
-     * IMPORTANT:
-     *
-     * When the user touches a vegetation polygon,
-     * automatic GPS recentering is temporarily suspended.
-     *
-     * This prevents map.setView() from immediately
-     * closing the Leaflet popup.
+     * GPS following is temporarily suspended when the
+     * user interacts with a polygon or manually moves
+     * the map.
      */
 
     let userInteractingWithMap = false;
 
     let popupInteractionTimer = null;
-
-
-    /*
-     * How long automatic GPS following remains paused
-     * after a polygon interaction.
-     */
 
     const popupPauseDuration = 3000;
 
@@ -584,6 +574,14 @@
     let vegetationVisible = false;
 
     let lastVegetationCenter = null;
+
+
+    /*
+     * Prevent vegetation from being reloaded when a
+     * popup's automatic panning causes a map move.
+     */
+
+    let popupIsOpen = false;
 
 
     /* =====================================================
@@ -624,6 +622,20 @@
        ===================================================== */
 
     function pauseGPSAutoCentering() {
+
+      /*
+       * If GPS is OFF, there is nothing to pause.
+       *
+       * This is important because polygon interaction
+       * should not involve GPS logic when GPS is disabled.
+       */
+
+      if (!gpsEnabled) {
+
+        return;
+
+      }
+
 
       userInteractingWithMap = true;
 
@@ -823,30 +835,18 @@
        ===================================================== */
 
     /*
-     * This is intentionally a SIMPLE STRAIGHT LINE
-     * approximation for the current version.
+     * SIMPLE STRAIGHT-LINE APPROXIMATION
      *
-     * Points NORTH of this line are treated as
-     * northern communities.
+     * 43.55 N at -86.0 W
+     * 43.10 N at -84.0 W
+     * 42.75 N at -82.0 W
      *
-     * Points SOUTH of this line are treated as
-     * southern communities.
-     *
-     * The line is approximately:
-     *
-     *   43.55 N at -86.0 W
-     *   43.10 N at -84.0 W
-     *   42.75 N at -82.0 W
-     *
-     * This is NOT intended to represent the actual
-     * ecological boundary at fine scale.
+     * This is intentionally only an approximation and
+     * should not be interpreted as the actual fine-scale
+     * ecological boundary.
      */
 
     function tensionZoneLatitude(longitude) {
-
-      /*
-       * Straight-line interpolation.
-       */
 
       const westLon =
         -86.0;
@@ -912,17 +912,6 @@
        MNFI COMMUNITY PAGE LINKS
        ===================================================== */
 
-    /*
-     * These are MNFI's current natural-community
-     * description pages.
-     *
-     * Some circa-1800 map cover types correspond
-     * directly to a modern MNFI community.
-     *
-     * The tension-zone-sensitive communities are
-     * handled separately below.
-     */
-
     const mnfiCommunityURLs = {
 
       "mesic northern forest":
@@ -976,19 +965,9 @@
         );
 
 
-      /*
-       * ---------------------------------------------------
-       * BEECH-SUGAR MAPLE FOREST
-       * ---------------------------------------------------
-       *
-       * This is the most important tension-zone case.
-       *
-       * NORTH:
-       * Mesic Northern Forest
-       *
-       * SOUTH:
-       * Mesic Southern Forest
-       */
+      /* ---------------------------------------------------
+         BEECH-SUGAR MAPLE FOREST
+         --------------------------------------------------- */
 
       if (
 
@@ -1038,13 +1017,9 @@
       }
 
 
-      /*
-       * ---------------------------------------------------
-       * BEECH-SUGAR MAPLE-HEMLOCK FOREST
-       * ---------------------------------------------------
-       *
-       * Treated as northern mesic forest.
-       */
+      /* ---------------------------------------------------
+         BEECH-SUGAR MAPLE-HEMLOCK FOREST
+         --------------------------------------------------- */
 
       if (
 
@@ -1071,14 +1046,9 @@
       }
 
 
-      /*
-       * ---------------------------------------------------
-       * SUGAR MAPLE-BASSWOOD FOREST
-       * ---------------------------------------------------
-       *
-       * Generally mapped to mesic northern forest
-       * in this simplified community-linking system.
-       */
+      /* ---------------------------------------------------
+         SUGAR MAPLE-BASSWOOD FOREST
+         --------------------------------------------------- */
 
       if (
 
@@ -1105,11 +1075,9 @@
       }
 
 
-      /*
-       * ---------------------------------------------------
-       * SUGAR MAPLE-HEMLOCK FOREST
-       * ---------------------------------------------------
-       */
+      /* ---------------------------------------------------
+         SUGAR MAPLE-HEMLOCK FOREST
+         --------------------------------------------------- */
 
       if (
 
@@ -1136,11 +1104,9 @@
       }
 
 
-      /*
-       * ---------------------------------------------------
-       * SUGAR MAPLE-YELLOW BIRCH FOREST
-       * ---------------------------------------------------
-       */
+      /* ---------------------------------------------------
+         SUGAR MAPLE-YELLOW BIRCH FOREST
+         --------------------------------------------------- */
 
       if (
 
@@ -1167,16 +1133,9 @@
       }
 
 
-      /*
-       * ---------------------------------------------------
-       * OAK-HICKORY FOREST
-       * ---------------------------------------------------
-       *
-       * For now this is linked to Dry-mesic Southern
-       * Forest because the circa-1800 cover type is
-       * most closely associated with the southern
-       * oak-dominated forest community.
-       */
+      /* ---------------------------------------------------
+         OAK-HICKORY FOREST
+         --------------------------------------------------- */
 
       if (
 
@@ -1203,11 +1162,9 @@
       }
 
 
-      /*
-       * ---------------------------------------------------
-       * MIXED OAK FOREST
-       * ---------------------------------------------------
-       */
+      /* ---------------------------------------------------
+         MIXED OAK FOREST
+         --------------------------------------------------- */
 
       if (
 
@@ -1242,11 +1199,9 @@
       }
 
 
-      /*
-       * ---------------------------------------------------
-       * MIXED PINE-OAK FOREST
-       * ---------------------------------------------------
-       */
+      /* ---------------------------------------------------
+         MIXED PINE-OAK FOREST
+         --------------------------------------------------- */
 
       if (
 
@@ -1273,11 +1228,9 @@
       }
 
 
-      /*
-       * ---------------------------------------------------
-       * WHITE PINE-WHITE OAK FOREST
-       * ---------------------------------------------------
-       */
+      /* ---------------------------------------------------
+         WHITE PINE-WHITE OAK FOREST
+         --------------------------------------------------- */
 
       if (
 
@@ -1304,11 +1257,9 @@
       }
 
 
-      /*
-       * ---------------------------------------------------
-       * WHITE PINE-MIXED HARDWOOD FOREST
-       * ---------------------------------------------------
-       */
+      /* ---------------------------------------------------
+         WHITE PINE-MIXED HARDWOOD FOREST
+         --------------------------------------------------- */
 
       if (
 
@@ -1335,11 +1286,9 @@
       }
 
 
-      /*
-       * ---------------------------------------------------
-       * WHITE PINE-RED PINE FOREST
-       * ---------------------------------------------------
-       */
+      /* ---------------------------------------------------
+         WHITE PINE-RED PINE FOREST
+         --------------------------------------------------- */
 
       if (
 
@@ -1366,11 +1315,9 @@
       }
 
 
-      /*
-       * ---------------------------------------------------
-       * JACK PINE-RED PINE FOREST
-       * ---------------------------------------------------
-       */
+      /* ---------------------------------------------------
+         JACK PINE-RED PINE FOREST
+         --------------------------------------------------- */
 
       if (
 
@@ -1395,11 +1342,9 @@
       }
 
 
-      /*
-       * ---------------------------------------------------
-       * HEMLOCK-WHITE PINE FOREST
-       * ---------------------------------------------------
-       */
+      /* ---------------------------------------------------
+         HEMLOCK-WHITE PINE FOREST
+         --------------------------------------------------- */
 
       if (
 
@@ -1426,11 +1371,9 @@
       }
 
 
-      /*
-       * ---------------------------------------------------
-       * HEMLOCK-YELLOW BIRCH FOREST
-       * ---------------------------------------------------
-       */
+      /* ---------------------------------------------------
+         HEMLOCK-YELLOW BIRCH FOREST
+         --------------------------------------------------- */
 
       if (
 
@@ -1457,15 +1400,9 @@
       }
 
 
-      /*
-       * ---------------------------------------------------
-       * ASPEN-BIRCH FOREST
-       * ---------------------------------------------------
-       *
-       * No direct community link is assigned here because
-       * this circa-1800 cover type does not map cleanly to
-       * one of the seven modern MNFI forest communities.
-       */
+      /* ---------------------------------------------------
+         NO MATCH
+         --------------------------------------------------- */
 
       return null;
 
@@ -1517,11 +1454,6 @@
 
         "</a>";
 
-
-      /*
-       * Tell the user when the straight-line
-       * tension-zone rule affected the selection.
-       */
 
       if (
         community.tensionSensitive
@@ -1676,11 +1608,6 @@
         navigator.geolocation.watchPosition(
 
           function(position) {
-
-            /*
-             * If GPS has been turned off while a
-             * callback was already queued, ignore it.
-             */
 
             if (!gpsEnabled) {
 
@@ -1859,19 +1786,7 @@
 
             /* ---------------------------------------------
                KEEP GPS DOT CENTERED
-               ---------------------------------------------
-             *
-             * IMPORTANT:
-             *
-             * This is now conditional on
-             * userInteractingWithMap.
-             *
-             * When a polygon has just been touched,
-             * map.setView() will NOT run.
-             *
-             * Therefore the popup is allowed to remain
-             * open.
-             */
+               --------------------------------------------- */
 
             const now =
               Date.now();
@@ -2059,10 +1974,6 @@
         null;
 
 
-      /*
-       * Remove GPS marker.
-       */
-
       if (gpsMarker) {
 
         map.removeLayer(
@@ -2075,10 +1986,6 @@
       }
 
 
-      /*
-       * Remove accuracy circle.
-       */
-
       if (gpsAccuracyCircle) {
 
         map.removeLayer(
@@ -2089,6 +1996,24 @@
           null;
 
       }
+
+
+      /*
+       * GPS is now completely inactive.
+       * Clear any lingering GPS interaction pause.
+       */
+
+      userInteractingWithMap =
+        false;
+
+
+      clearTimeout(
+        popupInteractionTimer
+      );
+
+
+      popupInteractionTimer =
+        null;
 
 
       setStatus(
@@ -2134,9 +2059,11 @@
 
 
         setStatus(
+
           gpsEnabled
             ? "GPS active"
             : "Historical vegetation OFF"
+
         );
 
 
@@ -2377,6 +2304,12 @@
         }
 
 
+        /*
+         * --------------------------------------------------
+         * REMOVE OLD VEGETATION LAYER
+         * --------------------------------------------------
+         */
+
         if (vegetationLayer) {
 
           map.removeLayer(
@@ -2386,6 +2319,12 @@
         }
 
 
+        /*
+         * --------------------------------------------------
+         * CREATE NEW VEGETATION LAYER
+         * --------------------------------------------------
+         */
+
         vegetationLayer =
 
           L.geoJSON(
@@ -2393,6 +2332,10 @@
             data,
 
             {
+
+              /* -------------------------------------------
+                 POLYGON STYLE
+                 ------------------------------------------- */
 
               style:
 
@@ -2430,6 +2373,10 @@
                 },
 
 
+              /* -------------------------------------------
+                 FEATURE HANDLING
+                 ------------------------------------------- */
+
               onEachFeature:
 
                 function(
@@ -2442,14 +2389,9 @@
 
 
                   /*
-                   * ------------------------------------------------
-                   * DETERMINE A REPRESENTATIVE POINT
-                   * ------------------------------------------------
-                   *
-                   * We need latitude/longitude so that the
-                   * tension-zone logic can determine whether
-                   * the clicked polygon should use a northern
-                   * or southern MNFI community page.
+                   * -----------------------------------------
+                   * REPRESENTATIVE POINT
+                   * -----------------------------------------
                    */
 
                   let polygonCenter;
@@ -2483,9 +2425,9 @@
 
 
                   /*
-                   * ------------------------------------------------
-                   * COMMUNITY LINK
-                   * ------------------------------------------------
+                   * -----------------------------------------
+                   * MNFI COMMUNITY LINK
+                   * -----------------------------------------
                    */
 
                   const communityLink =
@@ -2502,9 +2444,9 @@
 
 
                   /*
-                   * ------------------------------------------------
-                   * POPUP
-                   * ------------------------------------------------
+                   * -----------------------------------------
+                   * POPUP CONTENT
+                   * -----------------------------------------
                    */
 
                   let popup =
@@ -2544,26 +2486,21 @@
                     );
 
 
-                  /*
-                   * Add the MNFI community link when
-                   * this historical cover type has a
-                   * reasonable modern community match.
-                   */
-
                   popup +=
                     communityLink;
 
+
+                  /*
+                   * -----------------------------------------
+                   * BIND POPUP
+                   * -----------------------------------------
+                   */
 
                   layer.bindPopup(
 
                     popup,
 
                     {
-
-                      /*
-                       * Keep the popup open as long as
-                       * possible during touch interaction.
-                       */
 
                       closeButton:
                         true,
@@ -2579,9 +2516,18 @@
                   );
 
 
-                  /* ----------------------------------------------
-                     CLICK
-                     ---------------------------------------------- */
+                  /*
+                   * -----------------------------------------
+                   * CLICK
+                   * -----------------------------------------
+                   *
+                   * Important:
+                   *
+                   * We pause GPS following only if GPS
+                   * is actually active.
+                   *
+                   * We explicitly open the popup.
+                   */
 
                   layer.on(
 
@@ -2589,20 +2535,8 @@
 
                     function(e) {
 
-                      /*
-                       * THIS IS THE IMPORTANT FIX.
-                       *
-                       * Tell GPS following to stop calling
-                       * map.setView() for a short period.
-                       */
-
                       pauseGPSAutoCentering();
 
-
-                      /*
-                       * Stop this click from bubbling into
-                       * the underlying map.
-                       */
 
                       if (
                         e.originalEvent
@@ -2615,12 +2549,6 @@
                       }
 
 
-                      /*
-                       * Explicitly open the popup here.
-                       * This makes touch behavior more
-                       * reliable on phones.
-                       */
-
                       layer.openPopup();
 
                     }
@@ -2628,9 +2556,11 @@
                   );
 
 
-                  /* ----------------------------------------------
-                     TOUCH START
-                     ---------------------------------------------- */
+                  /*
+                   * -----------------------------------------
+                   * TOUCH START
+                   * -----------------------------------------
+                   */
 
                   layer.on(
 
@@ -2645,9 +2575,11 @@
                   );
 
 
-                  /* ----------------------------------------------
-                     MOUSEOVER
-                     ---------------------------------------------- */
+                  /*
+                   * -----------------------------------------
+                   * MOUSEOVER
+                   * -----------------------------------------
+                   */
 
                   layer.on(
 
@@ -2673,9 +2605,11 @@
                   );
 
 
-                  /* ----------------------------------------------
-                     MOUSEOUT
-                     ---------------------------------------------- */
+                  /*
+                   * -----------------------------------------
+                   * MOUSEOUT
+                   * -----------------------------------------
+                   */
 
                   layer.on(
 
@@ -2698,9 +2632,11 @@
                   );
 
 
-                  /* ----------------------------------------------
-                     POPUP OPEN
-                     ---------------------------------------------- */
+                  /*
+                   * -----------------------------------------
+                   * POPUP OPEN
+                   * -----------------------------------------
+                   */
 
                   layer.on(
 
@@ -2708,7 +2644,40 @@
 
                     function() {
 
+                      /*
+                       * Tell the application that a
+                       * popup is currently open.
+                       *
+                       * This prevents the popup's own
+                       * autoPan movement from triggering
+                       * a vegetation-layer reload.
+                       */
+
+                      popupIsOpen =
+                        true;
+
+
                       pauseGPSAutoCentering();
+
+                    }
+
+                  );
+
+
+                  /*
+                   * -----------------------------------------
+                   * POPUP CLOSE
+                   * -----------------------------------------
+                   */
+
+                  layer.on(
+
+                    "popupclose",
+
+                    function() {
+
+                      popupIsOpen =
+                        false;
 
                     }
 
@@ -3066,11 +3035,6 @@
           county;
 
 
-        /*
-         * Add the appropriate modern MNFI
-         * community classification when one exists.
-         */
-
         const community =
 
           getMNFICommunity(
@@ -3355,6 +3319,31 @@
         }
 
 
+        /*
+         * IMPORTANT FIX:
+         *
+         * Opening a Leaflet popup can cause the map to
+         * automatically pan so the popup is visible.
+         *
+         * That pan fires "moveend".
+         *
+         * Previously, this handler interpreted that move
+         * as a reason to reload the vegetation layer.
+         *
+         * Reloading the layer removes and recreates the
+         * polygon that owns the popup, causing the popup
+         * to disappear.
+         *
+         * If a popup is currently open, do NOT reload.
+         */
+
+        if (popupIsOpen) {
+
+          return;
+
+        }
+
+
         clearTimeout(
           reloadTimer
         );
@@ -3365,6 +3354,18 @@
           setTimeout(
 
             function() {
+
+              /*
+               * Check again because a popup may have
+               * opened while the reload was waiting.
+               */
+
+              if (popupIsOpen) {
+
+                return;
+
+              }
+
 
               loadVegetation();
 
@@ -3380,16 +3381,26 @@
 
 
     /* =====================================================
+       POPUP CLOSE
+       ===================================================== */
+
+    map.on(
+
+      "popupclose",
+
+      function() {
+
+        popupIsOpen =
+          false;
+
+      }
+
+    );
+
+
+    /* =====================================================
        USER MAP INTERACTION
-       =====================================================
-       *
-       * If the user manually drags the map, we don't want
-       * the next GPS update to immediately yank the map
-       * back underneath their finger.
-       *
-       * This also makes exploring the historical layer
-       * much easier.
-       */
+       ===================================================== */
 
     map.on(
 
