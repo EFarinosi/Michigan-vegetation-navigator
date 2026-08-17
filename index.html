@@ -110,13 +110,6 @@
     }
 
 
-    #gpsButton.active {
-
-      background: #b33a3a;
-
-    }
-
-
     #vegetationButton.active {
 
       background: #8b5a2b;
@@ -237,25 +230,25 @@
 
 
     /* =====================================================
-       MNFI LINKS
+       POPUP LINK
        ===================================================== */
 
-    .mnfiLink {
+    .mnfi-link {
 
       display: inline-block;
 
-      margin-top: 7px;
-
-      color: #245c9c;
+      margin-top: 8px;
 
       font-weight: bold;
+
+      color: #245c9c;
 
       text-decoration: none;
 
     }
 
 
-    .mnfiLink:hover {
+    .mnfi-link:hover {
 
       text-decoration: underline;
 
@@ -361,6 +354,8 @@
   <div id="controls">
 
 
+    <!-- GPS ON/OFF TOGGLE -->
+
     <button
       id="gpsButton"
       onclick="toggleGPS()"
@@ -403,7 +398,7 @@
 
     <div id="status">
 
-      GPS off
+      GPS OFF
 
     </div>
 
@@ -429,7 +424,6 @@
       <div id="currentDetails">
 
       </div>
-
 
     </div>
 
@@ -486,24 +480,6 @@
 
 
     /* ========================================================
-       MNFI SOURCE
-       ======================================================== */
-
-    const mnfiVegetationURL =
-
-      "https://mnfi.anr.msu.edu/resources/vegetation-circa-1800";
-
-
-    /* ========================================================
-       MICHIGAN VEGETATION SERVICE
-       ======================================================== */
-
-    const michiganURL =
-
-      "https://gisp.mcgi.state.mi.us/arcgis/rest/services/EGLE/LandCoverType_1800/FeatureServer/0";
-
-
-    /* ========================================================
        GPS VARIABLES
        ======================================================== */
 
@@ -549,6 +525,15 @@
 
 
     /* ========================================================
+       MICHIGAN HISTORICAL VEGETATION SERVICE
+       ======================================================== */
+
+    const michiganURL =
+
+      "https://gisp.mcgi.state.mi.us/arcgis/rest/services/EGLE/LandCoverType_1800/FeatureServer/0";
+
+
+    /* ========================================================
        STATUS
        ======================================================== */
 
@@ -562,274 +547,7 @@
 
 
     /* ========================================================
-       GPS DETAILS TOGGLE
-       ======================================================== */
-
-    function toggleGPSDetails() {
-
-      gpsDetailsVisible =
-        !gpsDetailsVisible;
-
-
-      const button =
-        document.getElementById(
-          "gpsDetailsButton"
-        );
-
-
-      if (gpsDetailsVisible) {
-
-        button.innerHTML =
-          "Hide GPS Details";
-
-        button.classList.add(
-          "active"
-        );
-
-        displayGPSDetails();
-
-      }
-
-      else {
-
-        button.innerHTML =
-          "GPS Details";
-
-        button.classList.remove(
-          "active"
-        );
-
-        displayGPSSummary();
-
-      }
-
-    }
-
-
-    /* ========================================================
-       DISPLAY GPS SUMMARY
-       ======================================================== */
-
-    function displayGPSSummary() {
-
-      if (!latestGPSData) {
-
-        setStatus(
-          "GPS off"
-        );
-
-        return;
-
-      }
-
-
-      const stateText =
-        latestGPSData.state ||
-        "Outside historical coverage";
-
-
-      setStatus(
-
-        "GPS active<br>" +
-
-        "Historical dataset: " +
-
-        stateText
-
-      );
-
-    }
-
-
-    /* ========================================================
-       DISPLAY GPS DETAILS
-       ======================================================== */
-
-    function displayGPSDetails() {
-
-      if (!latestGPSData) {
-
-        return;
-
-      }
-
-
-      const data =
-        latestGPSData;
-
-
-      const stateText =
-        data.state ||
-        "Outside historical coverage";
-
-
-      setStatus(
-
-        "GPS active<br>" +
-
-        "Latitude: " +
-        data.latitude.toFixed(6) +
-
-        "<br>" +
-
-        "Longitude: " +
-        data.longitude.toFixed(6) +
-
-        "<br>" +
-
-        "Accuracy: approximately " +
-        Math.round(data.accuracy) +
-        " meters" +
-
-        "<br>" +
-
-        "Historical dataset: " +
-        stateText
-
-      );
-
-    }
-
-
-    /* ========================================================
-       DETERMINE IF LOCATION IS IN MICHIGAN
-       ======================================================== */
-
-    function getHistoricalState(
-      latitude,
-      longitude
-    ) {
-
-      const inMichigan =
-
-        (
-          longitude >= -90.5 &&
-          longitude <= -82.0 &&
-          latitude >= 41.5 &&
-          latitude <= 49.0
-        );
-
-
-      if (inMichigan) {
-
-        return "Michigan";
-
-      }
-
-
-      return null;
-
-    }
-
-
-    /* ========================================================
-       STOP GPS
-       ======================================================== */
-
-    function stopGPS() {
-
-      if (watchID !== null) {
-
-        navigator.geolocation.clearWatch(
-          watchID
-        );
-
-        watchID = null;
-
-      }
-
-
-      gpsEnabled =
-        false;
-
-
-      gpsHasCentered =
-        false;
-
-
-      latestGPSData =
-        null;
-
-
-      lastVegetationPosition =
-        null;
-
-
-      lastState =
-        null;
-
-
-      if (gpsMarker) {
-
-        map.removeLayer(
-          gpsMarker
-        );
-
-        gpsMarker =
-          null;
-
-      }
-
-
-      if (gpsAccuracyCircle) {
-
-        map.removeLayer(
-          gpsAccuracyCircle
-        );
-
-        gpsAccuracyCircle =
-          null;
-
-      }
-
-
-      const gpsButton =
-        document.getElementById(
-          "gpsButton"
-        );
-
-
-      gpsButton.innerHTML =
-        "GPS OFF";
-
-
-      gpsButton.classList.remove(
-        "active"
-      );
-
-
-      const gpsDetailsButton =
-        document.getElementById(
-          "gpsDetailsButton"
-        );
-
-
-      gpsDetailsButton.style.display =
-        "none";
-
-
-      gpsDetailsVisible =
-        false;
-
-
-      gpsDetailsButton.innerHTML =
-        "GPS Details";
-
-
-      gpsDetailsButton.classList.remove(
-        "active"
-      );
-
-
-      setStatus(
-        "GPS off"
-      );
-
-    }
-
-
-    /* ========================================================
-       GPS TOGGLE
+       GPS ON/OFF TOGGLE
        ======================================================== */
 
     function toggleGPS() {
@@ -838,12 +556,13 @@
 
         stopGPS();
 
-        return;
-
       }
 
+      else {
 
-      startGPS();
+        startGPS();
+
+      }
 
     }
 
@@ -869,26 +588,6 @@
         true;
 
 
-      gpsHasCentered =
-        false;
-
-
-      lastMapCenterTime =
-        0;
-
-
-      lastVegetationCenter =
-        null;
-
-
-      lastVegetationPosition =
-        null;
-
-
-      latestGPSData =
-        null;
-
-
       const gpsButton =
         document.getElementById(
           "gpsButton"
@@ -898,10 +597,29 @@
       gpsButton.innerHTML =
         "GPS ON";
 
-
       gpsButton.classList.add(
         "active"
       );
+
+
+      gpsHasCentered =
+        false;
+
+      lastMapCenterTime =
+        0;
+
+      lastVegetationCenter =
+        null;
+
+      lastVegetationPosition =
+        null;
+
+      latestGPSData =
+        null;
+
+
+      gpsDetailsVisible =
+        false;
 
 
       const gpsDetailsButton =
@@ -913,14 +631,8 @@
       gpsDetailsButton.style.display =
         "none";
 
-
-      gpsDetailsVisible =
-        false;
-
-
       gpsDetailsButton.innerHTML =
         "GPS Details";
-
 
       gpsDetailsButton.classList.remove(
         "active"
@@ -945,11 +657,6 @@
         navigator.geolocation.watchPosition(
 
           function(position) {
-
-            /*
-             * If the user switched GPS off while a
-             * position was being processed, ignore it.
-             */
 
             if (!gpsEnabled) {
 
@@ -1070,7 +777,10 @@
                 15,
 
                 {
-                  animate: false
+
+                  animate:
+                    false
+
                 }
 
               );
@@ -1106,7 +816,10 @@
                 map.getZoom(),
 
                 {
-                  animate: false
+
+                  animate:
+                    false
+
                 }
 
               );
@@ -1119,7 +832,7 @@
 
 
             /* ----------------------------------------------
-               DETERMINE STATE
+               DETERMINE MICHIGAN
                ---------------------------------------------- */
 
             const state =
@@ -1203,13 +916,6 @@
 
           function(error) {
 
-            if (!gpsEnabled) {
-
-              return;
-
-            }
-
-
             setStatus(
 
               "GPS error: " +
@@ -1222,15 +928,292 @@
 
           {
 
-            enableHighAccuracy: true,
+            enableHighAccuracy:
+              true,
 
-            maximumAge: 1000,
+            maximumAge:
+              1000,
 
-            timeout: 15000
+            timeout:
+              15000
 
           }
 
         );
+
+    }
+
+
+    /* ========================================================
+       STOP GPS
+       ======================================================== */
+
+    function stopGPS() {
+
+      gpsEnabled =
+        false;
+
+
+      if (watchID !== null) {
+
+        navigator.geolocation.clearWatch(
+          watchID
+        );
+
+        watchID =
+          null;
+
+      }
+
+
+      if (gpsMarker) {
+
+        map.removeLayer(
+          gpsMarker
+        );
+
+        gpsMarker =
+          null;
+
+      }
+
+
+      if (gpsAccuracyCircle) {
+
+        map.removeLayer(
+          gpsAccuracyCircle
+        );
+
+        gpsAccuracyCircle =
+          null;
+
+      }
+
+
+      gpsHasCentered =
+        false;
+
+      gpsDetailsVisible =
+        false;
+
+      latestGPSData =
+        null;
+
+      lastVegetationPosition =
+        null;
+
+
+      const gpsButton =
+        document.getElementById(
+          "gpsButton"
+        );
+
+
+      gpsButton.innerHTML =
+        "GPS OFF";
+
+      gpsButton.classList.remove(
+        "active"
+      );
+
+
+      const gpsDetailsButton =
+        document.getElementById(
+          "gpsDetailsButton"
+        );
+
+
+      gpsDetailsButton.style.display =
+        "none";
+
+      gpsDetailsButton.innerHTML =
+        "GPS Details";
+
+      gpsDetailsButton.classList.remove(
+        "active"
+      );
+
+
+      if (currentVegetationVisible) {
+
+        document.getElementById(
+          "currentType"
+        ).innerHTML =
+          "GPS off";
+
+
+        document.getElementById(
+          "currentDetails"
+        ).innerHTML =
+          "Turn GPS on to identify the historical vegetation at your location.";
+
+      }
+
+
+      setStatus(
+        "GPS OFF"
+      );
+
+    }
+
+
+    /* ========================================================
+       GPS DETAILS TOGGLE
+       ======================================================== */
+
+    function toggleGPSDetails() {
+
+      gpsDetailsVisible =
+        !gpsDetailsVisible;
+
+
+      const button =
+        document.getElementById(
+          "gpsDetailsButton"
+        );
+
+
+      if (gpsDetailsVisible) {
+
+        button.innerHTML =
+          "Hide GPS Details";
+
+        button.classList.add(
+          "active"
+        );
+
+        displayGPSDetails();
+
+      }
+
+      else {
+
+        button.innerHTML =
+          "GPS Details";
+
+        button.classList.remove(
+          "active"
+        );
+
+        displayGPSSummary();
+
+      }
+
+    }
+
+
+    /* ========================================================
+       DISPLAY GPS SUMMARY
+       ======================================================== */
+
+    function displayGPSSummary() {
+
+      if (!latestGPSData) {
+
+        setStatus(
+          "Waiting for GPS location..."
+        );
+
+        return;
+
+      }
+
+
+      const stateText =
+        latestGPSData.state ||
+        "Outside Michigan historical coverage";
+
+
+      setStatus(
+
+        "GPS active<br>" +
+
+        "Historical dataset: " +
+
+        stateText
+
+      );
+
+    }
+
+
+    /* ========================================================
+       DISPLAY GPS DETAILS
+       ======================================================== */
+
+    function displayGPSDetails() {
+
+      if (!latestGPSData) {
+
+        return;
+
+      }
+
+
+      const data =
+        latestGPSData;
+
+
+      const stateText =
+        data.state ||
+        "Outside Michigan historical coverage";
+
+
+      setStatus(
+
+        "GPS active<br>" +
+
+        "Latitude: " +
+        data.latitude.toFixed(6) +
+
+        "<br>" +
+
+        "Longitude: " +
+        data.longitude.toFixed(6) +
+
+        "<br>" +
+
+        "Accuracy: approximately " +
+        Math.round(data.accuracy) +
+        " meters" +
+
+        "<br>" +
+
+        "Historical dataset: " +
+        stateText
+
+      );
+
+    }
+
+
+    /* ========================================================
+       DETERMINE MICHIGAN
+       ======================================================== */
+
+    function getHistoricalState(
+      latitude,
+      longitude
+    ) {
+
+      const inMichigan =
+
+        (
+          longitude >= -90.5 &&
+          longitude <= -82.0 &&
+          latitude >= 41.5 &&
+          latitude <= 49.0
+        );
+
+
+      if (inMichigan) {
+
+        return "Michigan";
+
+      }
+
+
+      return null;
 
     }
 
@@ -1579,13 +1562,23 @@
                     "Unknown";
 
 
-                  const formattedName =
-                    formatVegetationName(
+                  const county =
+                    p.CNTY_NAME ||
+                    "Unknown";
+
+
+                  const vegCode =
+                    p.VEGCODE ||
+                    "Unknown";
+
+
+                  const mnfiInfo =
+                    getMNFICommunityInfo(
                       coverType
                     );
 
 
-                  const popup =
+                  let popup =
 
                     "<strong>" +
 
@@ -1597,41 +1590,60 @@
 
                     "<strong>Historical cover type:</strong><br>" +
 
-                    formattedName +
+                    formatVegetationName(
+                      coverType
+                    ) +
 
                     "<br><br>" +
 
                     "<strong>Vegetation code:</strong> " +
 
-                    (
-                      p.VEGCODE ||
-                      "Unknown"
-                    ) +
+                    vegCode +
 
                     "<br><br>" +
 
                     "<strong>County:</strong> " +
 
-                    (
-                      p.CNTY_NAME ||
-                      "Unknown"
-                    ) +
+                    county;
 
-                    "<br>" +
 
-                    "<a class='mnfiLink' " +
+                  /*
+                   * Add a specific MNFI community
+                   * link when an appropriate match exists.
+                   */
 
-                    "href='" +
-                    mnfiVegetationURL +
-                    "' " +
+                  if (mnfiInfo) {
 
-                    "target='_blank' " +
+                    popup +=
 
-                    "rel='noopener noreferrer'>" +
+                      "<br><br>" +
 
-                    "View MNFI Vegetation circa 1800 ↗" +
+                      "<strong>Modern MNFI community:</strong><br>" +
 
-                    "</a>";
+                      mnfiInfo.name;
+
+
+                    popup +=
+
+                      "<br>" +
+
+                      "<a " +
+
+                      "class='mnfi-link' " +
+
+                      "href='" +
+                      mnfiInfo.url +
+                      "' " +
+
+                      "target='_blank' " +
+
+                      "rel='noopener noreferrer'>" +
+
+                      "Learn more about this forest type →" +
+
+                      "</a>";
+
+                  }
 
 
                   layer.bindPopup(
@@ -1731,6 +1743,452 @@
 
 
     /* ========================================================
+       MNFI COMMUNITY LINKS
+       ======================================================== */
+
+    function getMNFICommunityInfo(
+      coverType
+    ) {
+
+      if (!coverType) {
+
+        return null;
+
+      }
+
+
+      const key =
+        String(coverType)
+          .trim()
+          .toUpperCase();
+
+
+      /*
+       * These are modern MNFI natural-community
+       * classifications that best correspond to
+       * the historical circa-1800 cover classes.
+       *
+       * These should be interpreted as ecological
+       * equivalents rather than claiming that the
+       * historical map classes are identical to
+       * modern MNFI community definitions.
+       */
+
+
+      const communities = {
+
+        /*
+         * Northern hardwood systems
+         */
+
+        "BEECH-SUGAR MAPLE FOREST":
+
+          {
+
+            name:
+              "Mesic Northern Forest",
+
+            url:
+              "https://mnfi.anr.msu.edu/communities/description/10687/mesic-northern-forest"
+
+          },
+
+
+        "BEECH-SUGAR MAPLE-HEMLOCK FOREST":
+
+          {
+
+            name:
+              "Mesic Northern Forest",
+
+            url:
+              "https://mnfi.anr.msu.edu/communities/description/10687/mesic-northern-forest"
+
+          },
+
+
+        "SUGAR MAPLE-BASSWOOD FOREST":
+
+          {
+
+            name:
+              "Mesic Northern Forest",
+
+            url:
+              "https://mnfi.anr.msu.edu/communities/description/10687/mesic-northern-forest"
+
+          },
+
+
+        "SUGAR MAPLE-HEMLOCK FOREST":
+
+          {
+
+            name:
+              "Mesic Northern Forest",
+
+            url:
+              "https://mnfi.anr.msu.edu/communities/description/10687/mesic-northern-forest"
+
+          },
+
+
+        "SUGAR MAPLE-YELLOW BIRCH FOREST":
+
+          {
+
+            name:
+              "Mesic Northern Forest",
+
+            url:
+              "https://mnfi.anr.msu.edu/communities/description/10687/mesic-northern-forest"
+
+          },
+
+
+        "HEMLOCK-YELLOW BIRCH FOREST":
+
+          {
+
+            name:
+              "Mesic Northern Forest",
+
+            url:
+              "https://mnfi.anr.msu.edu/communities/description/10687/mesic-northern-forest"
+
+          },
+
+
+        "HEMLOCK-WHITE PINE FOREST":
+
+          {
+
+            name:
+              "Mesic Northern Forest",
+
+            url:
+              "https://mnfi.anr.msu.edu/communities/description/10687/mesic-northern-forest"
+
+          },
+
+
+        /*
+         * White pine / pine-hardwood systems
+         */
+
+        "WHITE PINE-MIXED HARDWOOD FOREST":
+
+          {
+
+            name:
+              "Dry-mesic Northern Forest",
+
+            url:
+              "https://mnfi.anr.msu.edu/communities/description/10688/dry-mesic-northern-forest"
+
+          },
+
+
+        "WHITE PINE-RED PINE FOREST":
+
+          {
+
+            name:
+              "Dry-mesic Northern Forest",
+
+            url:
+              "https://mnfi.anr.msu.edu/communities/description/10688/dry-mesic-northern-forest"
+
+          },
+
+
+        "WHITE PINE-WHITE OAK FOREST":
+
+          {
+
+            name:
+              "Dry-mesic Northern Forest",
+
+            url:
+              "https://mnfi.anr.msu.edu/communities/description/10688/dry-mesic-northern-forest"
+
+          },
+
+
+        "MIXED PINE-OAK FOREST":
+
+          {
+
+            name:
+              "Dry-mesic Northern Forest",
+
+            url:
+              "https://mnfi.anr.msu.edu/communities/description/10688/dry-mesic-northern-forest"
+
+          },
+
+
+        /*
+         * Jack pine / red pine
+         */
+
+        "JACK PINE-RED PINE FOREST":
+
+          {
+
+            name:
+              "Dry Northern Forest",
+
+            url:
+              "https://mnfi.anr.msu.edu/communities/description/10689/Dry-Northern-Forest"
+
+          },
+
+
+        /*
+         * Oak systems
+         */
+
+        "OAK-HICKORY FOREST":
+
+          {
+
+            name:
+              "Dry-mesic Southern Forest",
+
+            url:
+              "https://mnfi.anr.msu.edu/communities/description/10685/dry-mesic-southern-forest"
+
+          },
+
+
+        "MIXED OAK FOREST":
+
+          {
+
+            name:
+              "Dry-mesic Southern Forest",
+
+            url:
+              "https://mnfi.anr.msu.edu/communities/description/10685/dry-mesic-southern-forest"
+
+          },
+
+
+        "MIXED OAK SAVANNA":
+
+          {
+
+            name:
+              "Oak Openings",
+
+            url:
+              "https://mnfi.anr.msu.edu/communities/list"
+
+          },
+
+
+        "BLACK OAK BARREN":
+
+          {
+
+            name:
+              "Oak Barrens",
+
+            url:
+              "https://mnfi.anr.msu.edu/communities/list"
+
+          },
+
+
+        "OAK/PINE BARRENS":
+
+          {
+
+            name:
+              "Oak-Pine Barrens",
+
+            url:
+              "https://mnfi.anr.msu.edu/communities/list"
+
+          },
+
+
+        "PINE BARRENS":
+
+          {
+
+            name:
+              "Pine Barrens",
+
+            url:
+              "https://mnfi.anr.msu.edu/communities/list"
+
+          },
+
+
+        /*
+         * Wetland forest systems
+         */
+
+        "BLACK ASH SWAMP":
+
+          {
+
+            name:
+              "Northern Hardwood Swamp",
+
+            url:
+              "https://mnfi.anr.msu.edu/communities/list"
+
+          },
+
+
+        "CEDAR SWAMP":
+
+          {
+
+            name:
+              "Rich Conifer Swamp",
+
+            url:
+              "https://mnfi.anr.msu.edu/communities/list"
+
+          },
+
+
+        "MIXED CONIFER SWAMP":
+
+          {
+
+            name:
+              "Rich Conifer Swamp",
+
+            url:
+              "https://mnfi.anr.msu.edu/communities/list"
+
+          },
+
+
+        "MIXED HARDWOOD SWAMP":
+
+          {
+
+            name:
+              "Northern Hardwood Swamp",
+
+            url:
+              "https://mnfi.anr.msu.edu/communities/list"
+
+          },
+
+
+        "SPRUCE-FIR-CEDAR FOREST":
+
+          {
+
+            name:
+              "Boreal Forest",
+
+            url:
+              "https://mnfi.anr.msu.edu/communities/list"
+
+          },
+
+
+        /*
+         * Other mapped vegetation
+         */
+
+        "ASPEN-BIRCH FOREST":
+
+          {
+
+            name:
+              "Mesic Northern Forest",
+
+            url:
+              "https://mnfi.anr.msu.edu/communities/description/10687/mesic-northern-forest"
+
+          },
+
+
+        "MUSKEG/BOG":
+
+          {
+
+            name:
+              "Muskeg",
+
+            url:
+              "https://mnfi.anr.msu.edu/communities/list"
+
+          },
+
+
+        "SHRUB SWAMP/EMERGENT MARSH":
+
+          {
+
+            name:
+              "Emergent Marsh",
+
+            url:
+              "https://mnfi.anr.msu.edu/communities/list"
+
+          },
+
+
+        "WET PRAIRIE":
+
+          {
+
+            name:
+              "Wet Prairie",
+
+            url:
+              "https://mnfi.anr.msu.edu/communities/list"
+
+          },
+
+
+        "GRASSLAND":
+
+          {
+
+            name:
+              "Mesic Prairie",
+
+            url:
+              "https://mnfi.anr.msu.edu/communities/list"
+
+          },
+
+
+        "SAND DUNE":
+
+          {
+
+            name:
+              "Open Dunes",
+
+            url:
+              "https://mnfi.anr.msu.edu/communities/list"
+
+          }
+
+      };
+
+
+      return (
+        communities[key] ||
+        null
+      );
+
+    }
+
+
+    /* ========================================================
        CURRENT VEGETATION TOGGLE
        ======================================================== */
 
@@ -1775,7 +2233,7 @@
         "block";
 
 
-      if (!gpsMarker) {
+      if (!gpsEnabled || !gpsMarker) {
 
         document.getElementById(
           "currentType"
@@ -1786,8 +2244,7 @@
         document.getElementById(
           "currentDetails"
         ).innerHTML =
-
-          "Your current location is needed to identify the historical vegetation.";
+          "Your current GPS location is needed to identify the historical vegetation.";
 
         return;
 
@@ -1868,7 +2325,6 @@
         document.getElementById(
           "currentDetails"
         ).innerHTML =
-
           "The current GPS location is outside the Michigan historical vegetation dataset.";
 
         return;
@@ -1990,7 +2446,6 @@
           document.getElementById(
             "currentDetails"
           ).innerHTML =
-
             "No historical polygon was found at your GPS location.";
 
           return;
@@ -2017,17 +2472,13 @@
           "Unknown";
 
 
-        const formattedName =
-          formatVegetationName(
-            coverType
-          );
-
-
         document.getElementById(
           "currentType"
         ).innerHTML =
 
-          formattedName;
+          formatVegetationName(
+            coverType
+          );
 
 
         document.getElementById(
@@ -2044,23 +2495,7 @@
           "<br>" +
 
           "County: " +
-          county +
-
-          "<br>" +
-
-          "<a class='mnfiLink' " +
-
-          "href='" +
-          mnfiVegetationURL +
-          "' " +
-
-          "target='_blank' " +
-
-          "rel='noopener noreferrer'>" +
-
-          "View MNFI Vegetation circa 1800 ↗" +
-
-          "</a>";
+          county;
 
       }
 
