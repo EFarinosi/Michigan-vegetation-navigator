@@ -441,11 +441,7 @@
     </button>
 
 
-    <div id="status">
-
-      GPS off
-
-    </div>
+    <div id="status"></div>
 
 
     <!-- CURRENT VEGETATION DISPLAY -->
@@ -514,8 +510,7 @@
 
 
     /*
-     * Move Leaflet's zoom controls from the default
-     * upper-left position to the upper-right.
+     * Zoom controls moved to upper-right.
      */
 
     L.control.zoom({
@@ -639,13 +634,6 @@
 
     function pauseGPSAutoCentering() {
 
-      /*
-       * If GPS is OFF, there is nothing to pause.
-       *
-       * This is important because polygon interaction
-       * should not involve GPS logic when GPS is disabled.
-       */
-
       if (!gpsEnabled) {
 
         return;
@@ -716,7 +704,12 @@
           "active"
         );
 
-        displayGPSSummary();
+        /*
+         * No normal GPS information is displayed
+         * outside the details panel.
+         */
+
+        setStatus("");
 
       }
 
@@ -729,31 +722,18 @@
 
     function displayGPSSummary() {
 
-      if (!latestGPSData) {
+      /*
+       * GPS summary intentionally disabled.
+       *
+       * GPS information is only shown when the user
+       * opens GPS Details.
+       */
 
-        setStatus(
-          "GPS off"
-        );
+      if (!gpsDetailsVisible) {
 
-        return;
+        setStatus("");
 
       }
-
-
-      const stateText =
-        latestGPSData.state ||
-        "Outside current historical coverage";
-
-
-      setStatus(
-
-        "GPS active<br>" +
-
-        "Historical dataset: " +
-
-        stateText
-
-      );
 
     }
 
@@ -765,6 +745,10 @@
     function displayGPSDetails() {
 
       if (!latestGPSData) {
+
+        setStatus(
+          "Waiting for GPS location..."
+        );
 
         return;
 
@@ -781,8 +765,6 @@
 
 
       setStatus(
-
-        "GPS active<br>" +
 
         "Latitude: " +
         data.latitude.toFixed(6) +
@@ -1605,9 +1587,12 @@
       );
 
 
-      setStatus(
-        "Waiting for GPS location..."
-      );
+      /*
+       * No GPS information is shown in the normal
+       * status area.
+       */
+
+      setStatus("");
 
 
       if (watchID !== null) {
@@ -1784,18 +1769,24 @@
 
 
             /* ---------------------------------------------
-               STATUS
+               NORMAL STATUS
                --------------------------------------------- */
 
-            if (gpsDetailsVisible) {
+            /*
+             * Deliberately keep the normal status area
+             * blank. GPS information is available only
+             * through GPS Details.
+             */
 
-              displayGPSDetails();
+            if (!gpsDetailsVisible) {
+
+              setStatus("");
 
             }
 
             else {
 
-              displayGPSSummary();
+              displayGPSDetails();
 
             }
 
@@ -2032,9 +2023,7 @@
         null;
 
 
-      setStatus(
-        "GPS off"
-      );
+      setStatus("");
 
     }
 
@@ -2074,14 +2063,11 @@
         }
 
 
-        setStatus(
+        /*
+         * Do not display GPS status here.
+         */
 
-          gpsEnabled
-            ? "GPS active"
-            : "Historical vegetation OFF"
-
-        );
-
+        setStatus("");
 
         return;
 
@@ -2536,13 +2522,6 @@
                    * -----------------------------------------
                    * CLICK
                    * -----------------------------------------
-                   *
-                   * Important:
-                   *
-                   * We pause GPS following only if GPS
-                   * is actually active.
-                   *
-                   * We explicitly open the popup.
                    */
 
                   layer.on(
@@ -2659,15 +2638,6 @@
                     "popupopen",
 
                     function() {
-
-                      /*
-                       * Tell the application that a
-                       * popup is currently open.
-                       *
-                       * This prevents the popup's own
-                       * autoPan movement from triggering
-                       * a vegetation-layer reload.
-                       */
 
                       popupIsOpen =
                         true;
@@ -3335,19 +3305,10 @@
 
 
         /*
-         * IMPORTANT FIX:
-         *
          * Opening a Leaflet popup can cause the map to
          * automatically pan so the popup is visible.
          *
          * That pan fires "moveend".
-         *
-         * Previously, this handler interpreted that move
-         * as a reason to reload the vegetation layer.
-         *
-         * Reloading the layer removes and recreates the
-         * polygon that owns the popup, causing the popup
-         * to disappear.
          *
          * If a popup is currently open, do NOT reload.
          */
@@ -3369,11 +3330,6 @@
           setTimeout(
 
             function() {
-
-              /*
-               * Check again because a popup may have
-               * opened while the reload was waiting.
-               */
 
               if (popupIsOpen) {
 
