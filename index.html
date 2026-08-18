@@ -264,8 +264,6 @@
 
       font-size: 12px;
 
-      white-space: nowrap;
-
     }
 
 
@@ -519,7 +517,7 @@
 
 
     /*
-     * MOVE LEAFLET ZOOM CONTROLS TO UPPER RIGHT
+     * Move Leaflet zoom controls to the upper-right.
      */
 
     L.control.zoom({
@@ -715,32 +713,13 @@
         );
 
         /*
-         * Do not show GPS summary.
-         * GPS information remains hidden unless
-         * the user explicitly opens GPS Details.
+         * No GPS information is displayed when
+         * details are hidden.
          */
 
         setStatus("");
 
       }
-
-    }
-
-
-    /* =====================================================
-       DISPLAY GPS SUMMARY
-       ===================================================== */
-
-    function displayGPSSummary() {
-
-      /*
-       * GPS summary intentionally disabled.
-       *
-       * The application keeps the status area blank
-       * during normal GPS operation.
-       */
-
-      setStatus("");
 
     }
 
@@ -752,6 +731,10 @@
     function displayGPSDetails() {
 
       if (!latestGPSData) {
+
+        setStatus(
+          "Waiting for GPS location..."
+        );
 
         return;
 
@@ -768,8 +751,6 @@
 
 
       setStatus(
-
-        "GPS active<br>" +
 
         "Latitude: " +
         data.latitude.toFixed(6) +
@@ -836,18 +817,6 @@
     /* =====================================================
        FLORISTIC / CLIMATIC TENSION ZONE
        ===================================================== */
-
-    /*
-     * SIMPLE STRAIGHT-LINE APPROXIMATION
-     *
-     * 43.55 N at -86.0 W
-     * 43.10 N at -84.0 W
-     * 42.75 N at -82.0 W
-     *
-     * This is intentionally only an approximation and
-     * should not be interpreted as the actual fine-scale
-     * ecological boundary.
-     */
 
     function tensionZoneLatitude(longitude) {
 
@@ -917,8 +886,21 @@
 
     const mnfiCommunityURLs = {
 
+      /*
+       * IMPORTANT:
+       *
+       * Mesic Southern Forest = 10684
+       *
+       * Dry-mesic Southern Forest = 10685
+       *
+       * These are intentionally separate.
+       */
+
       "mesic northern forest":
         "https://mnfi.anr.msu.edu/communities/description/10687/mesic-northern-forest",
+
+      "mesic southern forest":
+        "https://mnfi.anr.msu.edu/communities/description/10684/mesic-southern-forest",
 
       "dry-mesic northern forest":
         "https://mnfi.anr.msu.edu/communities/description/10688/dry-mesic-northern-forest",
@@ -926,17 +908,18 @@
       "dry-mesic southern forest":
         "https://mnfi.anr.msu.edu/communities/description/10685/dry-mesic-southern-forest",
 
-      "mesic southern forest":
-        "https://mnfi.anr.msu.edu/communities/description/10686/mesic-southern-forest",
+      "dry northern forest":
+        "https://mnfi.anr.msu.edu/communities/description/10683/dry-northern-forest",
 
-      "hardwood-conifer swamp":
-        "https://mnfi.anr.msu.edu/communities/description/10656/hardwood-conifer-swamp",
-
-      "northern hardwood swamp":
-        "https://mnfi.anr.msu.edu/communities/description/10659",
+      /*
+       * Swamp classifications
+       */
 
       "southern hardwood swamp":
-        "https://mnfi.anr.msu.edu/communities/description/10655"
+        "https://mnfi.anr.msu.edu/communities/description/10655/southern-hardwood-swamp",
+
+      "hardwood-conifer swamp":
+        "https://mnfi.anr.msu.edu/communities/description/10656/hardwood-conifer-swamp"
 
     };
 
@@ -979,6 +962,18 @@
 
       /* ---------------------------------------------------
          BEECH-SUGAR MAPLE FOREST
+         ---------------------------------------------------
+
+         This is the critical lookup.
+
+         South of the tension zone:
+           Mesic Southern Forest
+
+         North of the tension zone:
+           Mesic Northern Forest
+
+         Eaton County therefore correctly resolves
+         to Mesic Southern Forest.
          --------------------------------------------------- */
 
       if (
@@ -1007,24 +1002,21 @@
 
         }
 
-        else {
 
-          return {
+        return {
 
-            name:
-              "Mesic Northern Forest",
+          name:
+            "Mesic Northern Forest",
 
-            url:
-              mnfiCommunityURLs[
-                "mesic northern forest"
-              ],
+          url:
+            mnfiCommunityURLs[
+              "mesic northern forest"
+            ],
 
-            tensionSensitive:
-              true
+          tensionSensitive:
+            true
 
-          };
-
-        }
+        };
 
       }
 
@@ -1185,23 +1177,35 @@
 
       ) {
 
+        if (south) {
+
+          return {
+
+            name:
+              "Dry-mesic Southern Forest",
+
+            url:
+              mnfiCommunityURLs[
+                "dry-mesic southern forest"
+              ],
+
+            tensionSensitive:
+              true
+
+          };
+
+        }
+
+
         return {
 
           name:
-            south
-              ? "Dry-mesic Southern Forest"
-              : "Dry-mesic Northern Forest",
+            "Dry-mesic Northern Forest",
 
           url:
-            south
-
-              ? mnfiCommunityURLs[
-                  "dry-mesic southern forest"
-                ]
-
-              : mnfiCommunityURLs[
-                  "dry-mesic northern forest"
-                ],
+            mnfiCommunityURLs[
+              "dry-mesic northern forest"
+            ],
 
           tensionSensitive:
             true
@@ -1344,7 +1348,9 @@
             "Dry Northern Forest",
 
           url:
-            "https://mnfi.anr.msu.edu/communities/description/10684/dry-northern-forest",
+            mnfiCommunityURLs[
+              "dry northern forest"
+            ],
 
           tensionSensitive:
             false
@@ -1412,22 +1418,19 @@
       }
 
 
-      /* ===================================================
+      /* ---------------------------------------------------
          MIXED CONIFER SWAMP
-         =================================================== */
+         ---------------------------------------------------
 
-      /*
-       * MNFI's current classification treats
-       * Hardwood-Conifer Swamp as a statewide community.
-       *
-       * It is characterized by a mixture of lowland
-       * hardwoods and conifers and can occur both north
-       * and south of the climatic tension zone.
-       *
-       * Therefore we do NOT force this GLO category into
-       * a northern/southern community based solely on
-       * latitude.
-       */
+         MNFI's current classification uses
+         Hardwood-Conifer Swamp for a statewide
+         minerotrophic swamp containing both hardwoods
+         and conifers.
+
+         This is preferable to Rich Conifer Swamp,
+         which is principally a northern, cedar-dominated
+         community.
+         --------------------------------------------------- */
 
       if (
 
@@ -1454,24 +1457,13 @@
       }
 
 
-      /* ===================================================
+      /* ---------------------------------------------------
          MIXED HARDWOOD SWAMP
-         =================================================== */
+         ---------------------------------------------------
 
-      /*
-       * Mixed Hardwood Swamp is crosswalked using the
-       * climatic tension zone.
-       *
-       * South of the tension zone:
-       *     Southern Hardwood Swamp
-       *
-       * North of the tension zone:
-       *     Northern Hardwood Swamp
-       *
-       * This is an ecological crosswalk, not a claim that
-       * the historical GLO class is taxonomically identical
-       * to the modern MNFI community.
-       */
+         Southern Michigan mixed hardwood swamp polygons
+         are linked to Southern Hardwood Swamp.
+         --------------------------------------------------- */
 
       if (
 
@@ -1480,43 +1472,20 @@
 
       ) {
 
-        if (south) {
+        return {
 
-          return {
+          name:
+            "Southern Hardwood Swamp",
 
-            name:
-              "Southern Hardwood Swamp",
+          url:
+            mnfiCommunityURLs[
+              "southern hardwood swamp"
+            ],
 
-            url:
-              mnfiCommunityURLs[
-                "southern hardwood swamp"
-              ],
+          tensionSensitive:
+            false
 
-            tensionSensitive:
-              true
-
-          };
-
-        }
-
-        else {
-
-          return {
-
-            name:
-              "Northern Hardwood Swamp",
-
-            url:
-              mnfiCommunityURLs[
-                "northern hardwood swamp"
-              ],
-
-            tensionSensitive:
-              true
-
-          };
-
-        }
+        };
 
       }
 
@@ -1711,7 +1680,8 @@
 
 
       /*
-       * Do not display routine GPS information.
+       * No GPS information is shown in the status
+       * area unless GPS Details is opened.
        */
 
       setStatus("");
@@ -1891,22 +1861,12 @@
 
 
             /* ---------------------------------------------
-               STATUS
+               GPS DETAILS
                --------------------------------------------- */
 
             if (gpsDetailsVisible) {
 
               displayGPSDetails();
-
-            }
-
-            else {
-
-              /*
-               * Keep GPS information hidden.
-               */
-
-              setStatus("");
 
             }
 
@@ -1991,7 +1951,7 @@
 
 
             /* ---------------------------------------------
-               CURRENT HISTORICAL VEGETATION
+               WHAT WAS HERE?
                --------------------------------------------- */
 
             if (
@@ -2019,12 +1979,21 @@
             }
 
 
-            setStatus(
+            /*
+             * GPS errors are only shown if GPS Details
+             * is currently open.
+             */
 
-              "GPS error: " +
-              error.message
+            if (gpsDetailsVisible) {
 
-            );
+              setStatus(
+
+                "GPS error: " +
+                error.message
+
+              );
+
+            }
 
           },
 
@@ -2180,13 +2149,21 @@
         }
 
 
-        setStatus(
+        /*
+         * Don't overwrite GPS details if they are open.
+         */
 
-          gpsEnabled
-            ? ""
-            : "GLO 1800s OFF"
+        if (gpsDetailsVisible) {
 
-        );
+          displayGPSDetails();
+
+        }
+
+        else {
+
+          setStatus("");
+
+        }
 
 
         return;
@@ -2226,7 +2203,7 @@
 
         setStatus(
 
-          "Zoom in closer to load GLO 1800s vegetation."
+          "Zoom in closer to load historical vegetation."
 
         );
 
@@ -2252,7 +2229,7 @@
 
         setStatus(
 
-          "Move the map into Michigan to load GLO 1800s vegetation."
+          "Move the map into Michigan to load historical vegetation."
 
         );
 
@@ -2417,7 +2394,7 @@
 
           setStatus(
 
-            "No GLO 1800s vegetation polygons were returned."
+            "No historical vegetation polygons were returned."
 
           );
 
@@ -2426,9 +2403,9 @@
         }
 
 
-        /* --------------------------------------------------
-           REMOVE OLD VEGETATION LAYER
-           -------------------------------------------------- */
+        /*
+         * REMOVE OLD VEGETATION LAYER
+         */
 
         if (vegetationLayer) {
 
@@ -2439,9 +2416,9 @@
         }
 
 
-        /* --------------------------------------------------
-           CREATE NEW VEGETATION LAYER
-           -------------------------------------------------- */
+        /*
+         * CREATE NEW VEGETATION LAYER
+         */
 
         vegetationLayer =
 
@@ -2498,6 +2475,10 @@
                     feature.properties;
 
 
+                  /*
+                   * REPRESENTATIVE POINT
+                   */
+
                   let polygonCenter;
 
 
@@ -2528,6 +2509,10 @@
                     "Unknown";
 
 
+                  /*
+                   * MNFI COMMUNITY LINK
+                   */
+
                   const communityLink =
 
                     createMNFILink(
@@ -2540,6 +2525,10 @@
 
                     );
 
+
+                  /*
+                   * POPUP CONTENT
+                   */
 
                   let popup =
 
@@ -2579,13 +2568,18 @@
 
 
                   /*
-                   * Community link is deliberately placed
-                   * on its own block/line.
+                   * COMMUNITY LINK IS NOW
+                   * GUARANTEED TO START ON ITS
+                   * OWN LINE.
                    */
 
                   popup +=
                     communityLink;
 
+
+                  /*
+                   * BIND POPUP
+                   */
 
                   layer.bindPopup(
 
@@ -2606,6 +2600,10 @@
 
                   );
 
+
+                  /*
+                   * CLICK
+                   */
 
                   layer.on(
 
@@ -2634,6 +2632,10 @@
                   );
 
 
+                  /*
+                   * TOUCH START
+                   */
+
                   layer.on(
 
                     "touchstart",
@@ -2646,6 +2648,10 @@
 
                   );
 
+
+                  /*
+                   * MOUSEOVER
+                   */
 
                   layer.on(
 
@@ -2671,6 +2677,10 @@
                   );
 
 
+                  /*
+                   * MOUSEOUT
+                   */
+
                   layer.on(
 
                     "mouseout",
@@ -2692,6 +2702,10 @@
                   );
 
 
+                  /*
+                   * POPUP OPEN
+                   */
+
                   layer.on(
 
                     "popupopen",
@@ -2708,6 +2722,10 @@
 
                   );
 
+
+                  /*
+                   * POPUP CLOSE
+                   */
 
                   layer.on(
 
@@ -2734,17 +2752,22 @@
         );
 
 
-        setStatus(
+        /*
+         * Only show loading status if GPS Details
+         * is not being used.
+         */
 
-          "GLO 1800s ON<br>" +
+        if (gpsDetailsVisible) {
 
-          "Michigan: " +
+          displayGPSDetails();
 
-          data.features.length +
+        }
 
-          " polygons loaded"
+        else {
 
-        );
+          setStatus("");
+
+        }
 
       }
 
@@ -2761,7 +2784,7 @@
 
         setStatus(
 
-          "GLO 1800s error:<br>" +
+          "Vegetation error:<br>" +
           error.message
 
         );
@@ -2850,7 +2873,7 @@
 
 
     /* =====================================================
-       UPDATE CURRENT HISTORICAL VEGETATION
+       UPDATE CURRENT VEGETATION
        ===================================================== */
 
     async function updateCurrentVegetation(
@@ -3124,12 +3147,10 @@
 
 
           /*
-           * Force link onto its own line.
+           * Link deliberately starts on its own line.
            */
 
           details +=
-
-            "<br>" +
 
             '<a class="mnfi-link" ' +
 
@@ -3361,6 +3382,10 @@
 
         }
 
+
+        /*
+         * Don't reload while a popup is open.
+         */
 
         if (popupIsOpen) {
 
