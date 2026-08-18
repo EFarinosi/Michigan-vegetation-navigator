@@ -244,7 +244,9 @@
 
     .mnfi-link {
 
-      display: inline-block;
+      display: block;
+
+      width: fit-content;
 
       margin-top: 8px;
 
@@ -500,30 +502,13 @@
        ===================================================== */
 
     const map =
-      L.map("map", {
-
-        zoomControl:
-          false
-
-      }).setView(
+      L.map("map").setView(
 
         [44.5, -84.5],
 
         7
 
       );
-
-
-    /*
-     * MOVE LEAFLET ZOOM CONTROL TO UPPER RIGHT
-     */
-
-    L.control.zoom({
-
-      position:
-        "topright"
-
-    }).addTo(map);
 
 
     /* =====================================================
@@ -544,6 +529,15 @@
       }
 
     ).addTo(map);
+
+
+    /* =====================================================
+       MOVE ZOOM CONTROL TO UPPER RIGHT
+       ===================================================== */
+
+    map.zoomControl.setPosition(
+      "topright"
+    );
 
 
     /* =====================================================
@@ -710,7 +704,12 @@
           "active"
         );
 
-        displayGPSSummary();
+        /*
+         * When GPS details are hidden, do not display
+         * GPS status information.
+         */
+
+        setStatus("");
 
       }
 
@@ -724,8 +723,8 @@
     function displayGPSSummary() {
 
       /*
-       * Deliberately keep the status area blank while GPS
-       * is active unless the user opens GPS Details.
+       * GPS information is intentionally hidden unless
+       * the user opens GPS Details.
        */
 
       if (!gpsEnabled) {
@@ -734,12 +733,13 @@
           "GPS off"
         );
 
-        return;
-
       }
 
+      else {
 
-      setStatus("");
+        setStatus("");
+
+      }
 
     }
 
@@ -771,6 +771,8 @@
 
 
       setStatus(
+
+        "GPS active<br>" +
 
         "Latitude: " +
         data.latitude.toFixed(6) +
@@ -838,18 +840,6 @@
        FLORISTIC / CLIMATIC TENSION ZONE
        ===================================================== */
 
-    /*
-     * SIMPLE STRAIGHT-LINE APPROXIMATION
-     *
-     * 43.55 N at -86.0 W
-     * 43.10 N at -84.0 W
-     * 42.75 N at -82.0 W
-     *
-     * This is intentionally only an approximation and
-     * should not be interpreted as the actual fine-scale
-     * ecological boundary.
-     */
-
     function tensionZoneLatitude(longitude) {
 
       const westLon =
@@ -913,30 +903,10 @@
 
 
     /* =====================================================
-       MNFI COMMUNITY LINK LOOKUP TABLE
+       MNFI COMMUNITY PAGE LINKS
        ===================================================== */
 
-    /*
-     * VERIFIED MNFI COMMUNITY IDS
-     *
-     * 10684 = Mesic Southern Forest
-     * 10685 = Dry-mesic Southern Forest
-     * 10686 = Dry Southern Forest
-     * 10687 = Mesic Northern Forest
-     * 10688 = Dry-mesic Northern Forest
-     * 10689 = Dry Northern Forest
-     */
-
     const mnfiCommunityURLs = {
-
-      "mesic southern forest":
-        "https://mnfi.anr.msu.edu/communities/description/10684/mesic-southern-forest",
-
-      "dry-mesic southern forest":
-        "https://mnfi.anr.msu.edu/communities/description/10685/dry-mesic-southern-forest",
-
-      "dry southern forest":
-        "https://mnfi.anr.msu.edu/communities/description/10686/dry-southern-forest",
 
       "mesic northern forest":
         "https://mnfi.anr.msu.edu/communities/description/10687/mesic-northern-forest",
@@ -944,8 +914,11 @@
       "dry-mesic northern forest":
         "https://mnfi.anr.msu.edu/communities/description/10688/dry-mesic-northern-forest",
 
-      "dry northern forest":
-        "https://mnfi.anr.msu.edu/communities/description/10689/dry-northern-forest"
+      "dry-mesic southern forest":
+        "https://mnfi.anr.msu.edu/communities/description/10685/dry-mesic-southern-forest",
+
+      "mesic southern forest":
+        "https://mnfi.anr.msu.edu/communities/description/10686/mesic-southern-forest"
 
     };
 
@@ -1202,7 +1175,6 @@
               : "Dry-mesic Northern Forest",
 
           url:
-
             south
 
               ? mnfiCommunityURLs[
@@ -1354,9 +1326,7 @@
             "Dry Northern Forest",
 
           url:
-            mnfiCommunityURLs[
-              "dry northern forest"
-            ],
+            "https://mnfi.anr.msu.edu/communities/description/10684/dry-northern-forest",
 
           tensionSensitive:
             false
@@ -1614,8 +1584,7 @@
 
 
       /*
-       * No GPS information is displayed in the status
-       * area during normal operation.
+       * GPS information is intentionally hidden.
        */
 
       setStatus("");
@@ -1807,7 +1776,8 @@
             else {
 
               /*
-               * Keep status area empty.
+               * No GPS information shown outside the
+               * details button.
                */
 
               setStatus("");
@@ -1895,7 +1865,7 @@
 
 
             /* ---------------------------------------------
-               WHAT WAS HERE?
+               CURRENT VEGETATION
                --------------------------------------------- */
 
             if (
@@ -2050,7 +2020,7 @@
 
 
     /* =====================================================
-       GLO 1800s TOGGLE
+       VEGETATION TOGGLE
        ===================================================== */
 
     function toggleVegetation() {
@@ -2659,7 +2629,7 @@
 
 
     /* =====================================================
-       WHAT WAS HERE? TOGGLE
+       WHAT WAS HERE TOGGLE
        ===================================================== */
 
     function toggleCurrentVegetation() {
@@ -3009,6 +2979,11 @@
 
           }
 
+
+          /*
+           * The MNFI link is intentionally block-level
+           * so it always appears on its own line.
+           */
 
           details +=
 
