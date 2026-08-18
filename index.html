@@ -264,6 +264,8 @@
 
       font-size: 12px;
 
+      white-space: nowrap;
+
     }
 
 
@@ -502,13 +504,30 @@
        ===================================================== */
 
     const map =
-      L.map("map").setView(
+      L.map("map", {
+
+        zoomControl:
+          false
+
+      }).setView(
 
         [44.5, -84.5],
 
         7
 
       );
+
+
+    /*
+     * MOVE LEAFLET ZOOM CONTROLS TO UPPER RIGHT
+     */
+
+    L.control.zoom({
+
+      position:
+        "topright"
+
+    }).addTo(map);
 
 
     /* =====================================================
@@ -529,15 +548,6 @@
       }
 
     ).addTo(map);
-
-
-    /* =====================================================
-       MOVE ZOOM CONTROL TO UPPER RIGHT
-       ===================================================== */
-
-    map.zoomControl.setPosition(
-      "topright"
-    );
 
 
     /* =====================================================
@@ -705,8 +715,9 @@
         );
 
         /*
-         * When GPS details are hidden, do not display
-         * GPS status information.
+         * Do not show GPS summary.
+         * GPS information remains hidden unless
+         * the user explicitly opens GPS Details.
          */
 
         setStatus("");
@@ -723,23 +734,13 @@
     function displayGPSSummary() {
 
       /*
-       * GPS information is intentionally hidden unless
-       * the user opens GPS Details.
+       * GPS summary intentionally disabled.
+       *
+       * The application keeps the status area blank
+       * during normal GPS operation.
        */
 
-      if (!gpsEnabled) {
-
-        setStatus(
-          "GPS off"
-        );
-
-      }
-
-      else {
-
-        setStatus("");
-
-      }
+      setStatus("");
 
     }
 
@@ -751,10 +752,6 @@
     function displayGPSDetails() {
 
       if (!latestGPSData) {
-
-        setStatus(
-          "Waiting for GPS location..."
-        );
 
         return;
 
@@ -840,6 +837,18 @@
        FLORISTIC / CLIMATIC TENSION ZONE
        ===================================================== */
 
+    /*
+     * SIMPLE STRAIGHT-LINE APPROXIMATION
+     *
+     * 43.55 N at -86.0 W
+     * 43.10 N at -84.0 W
+     * 42.75 N at -82.0 W
+     *
+     * This is intentionally only an approximation and
+     * should not be interpreted as the actual fine-scale
+     * ecological boundary.
+     */
+
     function tensionZoneLatitude(longitude) {
 
       const westLon =
@@ -918,7 +927,16 @@
         "https://mnfi.anr.msu.edu/communities/description/10685/dry-mesic-southern-forest",
 
       "mesic southern forest":
-        "https://mnfi.anr.msu.edu/communities/description/10686/mesic-southern-forest"
+        "https://mnfi.anr.msu.edu/communities/description/10686/mesic-southern-forest",
+
+      "hardwood-conifer swamp":
+        "https://mnfi.anr.msu.edu/communities/description/10656/hardwood-conifer-swamp",
+
+      "northern hardwood swamp":
+        "https://mnfi.anr.msu.edu/communities/description/10659",
+
+      "southern hardwood swamp":
+        "https://mnfi.anr.msu.edu/communities/description/10655"
 
     };
 
@@ -1394,6 +1412,115 @@
       }
 
 
+      /* ===================================================
+         MIXED CONIFER SWAMP
+         =================================================== */
+
+      /*
+       * MNFI's current classification treats
+       * Hardwood-Conifer Swamp as a statewide community.
+       *
+       * It is characterized by a mixture of lowland
+       * hardwoods and conifers and can occur both north
+       * and south of the climatic tension zone.
+       *
+       * Therefore we do NOT force this GLO category into
+       * a northern/southern community based solely on
+       * latitude.
+       */
+
+      if (
+
+        type ===
+        "MIXED CONIFER SWAMP"
+
+      ) {
+
+        return {
+
+          name:
+            "Hardwood-Conifer Swamp",
+
+          url:
+            mnfiCommunityURLs[
+              "hardwood-conifer swamp"
+            ],
+
+          tensionSensitive:
+            false
+
+        };
+
+      }
+
+
+      /* ===================================================
+         MIXED HARDWOOD SWAMP
+         =================================================== */
+
+      /*
+       * Mixed Hardwood Swamp is crosswalked using the
+       * climatic tension zone.
+       *
+       * South of the tension zone:
+       *     Southern Hardwood Swamp
+       *
+       * North of the tension zone:
+       *     Northern Hardwood Swamp
+       *
+       * This is an ecological crosswalk, not a claim that
+       * the historical GLO class is taxonomically identical
+       * to the modern MNFI community.
+       */
+
+      if (
+
+        type ===
+        "MIXED HARDWOOD SWAMP"
+
+      ) {
+
+        if (south) {
+
+          return {
+
+            name:
+              "Southern Hardwood Swamp",
+
+            url:
+              mnfiCommunityURLs[
+                "southern hardwood swamp"
+              ],
+
+            tensionSensitive:
+              true
+
+          };
+
+        }
+
+        else {
+
+          return {
+
+            name:
+              "Northern Hardwood Swamp",
+
+            url:
+              mnfiCommunityURLs[
+                "northern hardwood swamp"
+              ],
+
+            tensionSensitive:
+              true
+
+          };
+
+        }
+
+      }
+
+
       /* ---------------------------------------------------
          NO MATCH
          --------------------------------------------------- */
@@ -1584,7 +1711,7 @@
 
 
       /*
-       * GPS information is intentionally hidden.
+       * Do not display routine GPS information.
        */
 
       setStatus("");
@@ -1776,8 +1903,7 @@
             else {
 
               /*
-               * No GPS information shown outside the
-               * details button.
+               * Keep GPS information hidden.
                */
 
               setStatus("");
@@ -1865,7 +1991,7 @@
 
 
             /* ---------------------------------------------
-               CURRENT VEGETATION
+               CURRENT HISTORICAL VEGETATION
                --------------------------------------------- */
 
             if (
@@ -2020,7 +2146,7 @@
 
 
     /* =====================================================
-       VEGETATION TOGGLE
+       GLO 1800s TOGGLE
        ===================================================== */
 
     function toggleVegetation() {
@@ -2058,7 +2184,7 @@
 
           gpsEnabled
             ? ""
-            : "Historical vegetation OFF"
+            : "GLO 1800s OFF"
 
         );
 
@@ -2077,7 +2203,7 @@
 
 
       setStatus(
-        "Loading historical vegetation..."
+        "Loading GLO 1800s vegetation..."
       );
 
 
@@ -2100,7 +2226,7 @@
 
         setStatus(
 
-          "Zoom in closer to load historical vegetation."
+          "Zoom in closer to load GLO 1800s vegetation."
 
         );
 
@@ -2126,7 +2252,7 @@
 
         setStatus(
 
-          "Move the map into Michigan to load historical vegetation."
+          "Move the map into Michigan to load GLO 1800s vegetation."
 
         );
 
@@ -2134,6 +2260,10 @@
 
       }
 
+
+      /*
+       * Avoid unnecessarily querying the same area.
+       */
 
       if (lastVegetationCenter) {
 
@@ -2287,7 +2417,7 @@
 
           setStatus(
 
-            "No historical vegetation polygons were returned."
+            "No GLO 1800s vegetation polygons were returned."
 
           );
 
@@ -2295,6 +2425,10 @@
 
         }
 
+
+        /* --------------------------------------------------
+           REMOVE OLD VEGETATION LAYER
+           -------------------------------------------------- */
 
         if (vegetationLayer) {
 
@@ -2304,6 +2438,10 @@
 
         }
 
+
+        /* --------------------------------------------------
+           CREATE NEW VEGETATION LAYER
+           -------------------------------------------------- */
 
         vegetationLayer =
 
@@ -2439,6 +2577,11 @@
 
                     );
 
+
+                  /*
+                   * Community link is deliberately placed
+                   * on its own block/line.
+                   */
 
                   popup +=
                     communityLink;
@@ -2593,7 +2736,7 @@
 
         setStatus(
 
-          "Historical vegetation ON<br>" +
+          "GLO 1800s ON<br>" +
 
           "Michigan: " +
 
@@ -2618,7 +2761,7 @@
 
         setStatus(
 
-          "Vegetation error:<br>" +
+          "GLO 1800s error:<br>" +
           error.message
 
         );
@@ -2629,7 +2772,7 @@
 
 
     /* =====================================================
-       WHAT WAS HERE TOGGLE
+       WHAT WAS HERE? TOGGLE
        ===================================================== */
 
     function toggleCurrentVegetation() {
@@ -2707,7 +2850,7 @@
 
 
     /* =====================================================
-       UPDATE CURRENT VEGETATION
+       UPDATE CURRENT HISTORICAL VEGETATION
        ===================================================== */
 
     async function updateCurrentVegetation(
@@ -2981,8 +3124,7 @@
 
 
           /*
-           * The MNFI link is intentionally block-level
-           * so it always appears on its own line.
+           * Force link onto its own line.
            */
 
           details +=
