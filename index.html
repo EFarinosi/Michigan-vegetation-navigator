@@ -179,7 +179,7 @@
 
 
     /* =====================================================
-       CURRENT VEGETATION BOX
+       CURRENT / HISTORICAL VEGETATION BOX
        ===================================================== */
 
     #currentVegetation {
@@ -294,6 +294,21 @@
 
 
     /* =====================================================
+       MOVE LEAFLET ZOOM CONTROLS TO UPPER RIGHT
+       ===================================================== */
+
+    .leaflet-top.leaflet-left {
+
+      top: 8px;
+
+      left: auto;
+
+      right: 8px;
+
+    }
+
+
+    /* =====================================================
        SMALL SCREENS
        ===================================================== */
 
@@ -384,6 +399,15 @@
 
       }
 
+
+      .leaflet-top.leaflet-left {
+
+        top: 6px;
+
+        right: 6px;
+
+      }
+
     }
 
   </style>
@@ -416,7 +440,7 @@
       onclick="toggleVegetation()"
     >
 
-      Vegetation OFF
+      GLO 1800s OFF
 
     </button>
 
@@ -426,7 +450,7 @@
       onclick="toggleCurrentVegetation()"
     >
 
-      Current Vegetation
+      What Was Here?
 
     </button>
 
@@ -441,10 +465,16 @@
     </button>
 
 
-    <div id="status"></div>
+    <div id="status">
+
+      GPS off
+
+    </div>
 
 
-    <!-- CURRENT VEGETATION DISPLAY -->
+    <!-- =================================================
+         HISTORICAL VEGETATION AT CURRENT LOCATION
+         ================================================= -->
 
     <div id="currentVegetation">
 
@@ -496,28 +526,13 @@
        ===================================================== */
 
     const map =
-      L.map("map", {
-
-        zoomControl: false
-
-      }).setView(
+      L.map("map").setView(
 
         [44.5, -84.5],
 
         7
 
       );
-
-
-    /*
-     * Zoom controls moved to upper-right.
-     */
-
-    L.control.zoom({
-
-      position: "topright"
-
-    }).addTo(map);
 
 
     /* =====================================================
@@ -596,7 +611,7 @@
 
 
     /* =====================================================
-       CURRENT VEGETATION VARIABLES
+       WHAT WAS HERE VARIABLES
        ===================================================== */
 
     let currentVegetationVisible = false;
@@ -633,6 +648,10 @@
        ===================================================== */
 
     function pauseGPSAutoCentering() {
+
+      /*
+       * If GPS is OFF, there is nothing to pause.
+       */
 
       if (!gpsEnabled) {
 
@@ -705,8 +724,8 @@
         );
 
         /*
-         * No normal GPS information is displayed
-         * outside the details panel.
+         * Do not show GPS information when details are
+         * hidden.
          */
 
         setStatus("");
@@ -723,17 +742,44 @@
     function displayGPSSummary() {
 
       /*
-       * GPS summary intentionally disabled.
-       *
-       * GPS information is only shown when the user
-       * opens GPS Details.
+       * GPS information is intentionally hidden unless
+       * GPS Details is open.
        */
 
       if (!gpsDetailsVisible) {
 
         setStatus("");
 
+        return;
+
       }
+
+
+      if (!latestGPSData) {
+
+        setStatus(
+          "Waiting for GPS location..."
+        );
+
+        return;
+
+      }
+
+
+      const stateText =
+        latestGPSData.state ||
+        "Outside current historical coverage";
+
+
+      setStatus(
+
+        "GPS active<br>" +
+
+        "Historical dataset: " +
+
+        stateText
+
+      );
 
     }
 
@@ -831,18 +877,6 @@
     /* =====================================================
        FLORISTIC / CLIMATIC TENSION ZONE
        ===================================================== */
-
-    /*
-     * SIMPLE STRAIGHT-LINE APPROXIMATION
-     *
-     * 43.55 N at -86.0 W
-     * 43.10 N at -84.0 W
-     * 42.75 N at -82.0 W
-     *
-     * This is intentionally only an approximation and
-     * should not be interpreted as the actual fine-scale
-     * ecological boundary.
-     */
 
     function tensionZoneLatitude(longitude) {
 
@@ -1588,8 +1622,7 @@
 
 
       /*
-       * No GPS information is shown in the normal
-       * status area.
+       * No GPS information is shown here.
        */
 
       setStatus("");
@@ -1769,24 +1802,23 @@
 
 
             /* ---------------------------------------------
-               NORMAL STATUS
+               STATUS
                --------------------------------------------- */
 
             /*
-             * Deliberately keep the normal status area
-             * blank. GPS information is available only
-             * through GPS Details.
+             * Only show GPS information when the user
+             * has explicitly opened GPS Details.
              */
 
-            if (!gpsDetailsVisible) {
+            if (gpsDetailsVisible) {
 
-              setStatus("");
+              displayGPSDetails();
 
             }
 
             else {
 
-              displayGPSDetails();
+              setStatus("");
 
             }
 
@@ -1871,7 +1903,7 @@
 
 
             /* ---------------------------------------------
-               CURRENT VEGETATION
+               WHAT WAS HERE
                --------------------------------------------- */
 
             if (
@@ -1899,12 +1931,16 @@
             }
 
 
-            setStatus(
+            if (gpsDetailsVisible) {
 
-              "GPS error: " +
-              error.message
+              setStatus(
 
-            );
+                "GPS error: " +
+                error.message
+
+              );
+
+            }
 
           },
 
@@ -2007,7 +2043,6 @@
 
       /*
        * GPS is now completely inactive.
-       * Clear any lingering GPS interaction pause.
        */
 
       userInteractingWithMap =
@@ -2029,7 +2064,7 @@
 
 
     /* =====================================================
-       VEGETATION TOGGLE
+       GLO 1800s TOGGLE
        ===================================================== */
 
     function toggleVegetation() {
@@ -2047,7 +2082,7 @@
       if (!vegetationVisible) {
 
         button.innerHTML =
-          "Vegetation OFF";
+          "GLO 1800s OFF";
 
         button.classList.remove(
           "active"
@@ -2064,10 +2099,23 @@
 
 
         /*
-         * Do not display GPS status here.
+         * Do not overwrite the GPS display.
+         * GPS information remains hidden unless GPS Details
+         * is open.
          */
 
-        setStatus("");
+        if (gpsDetailsVisible) {
+
+          displayGPSDetails();
+
+        }
+
+        else {
+
+          setStatus("");
+
+        }
+
 
         return;
 
@@ -2075,7 +2123,7 @@
 
 
       button.innerHTML =
-        "Vegetation ON";
+        "GLO 1800s ON";
 
       button.classList.add(
         "active"
@@ -2083,7 +2131,7 @@
 
 
       setStatus(
-        "Loading historical vegetation..."
+        "Loading GLO 1800s vegetation..."
       );
 
 
@@ -2097,7 +2145,7 @@
 
 
     /* =====================================================
-       LOAD VEGETATION
+       LOAD GLO 1800s VEGETATION
        ===================================================== */
 
     async function loadVegetation() {
@@ -2106,7 +2154,7 @@
 
         setStatus(
 
-          "Zoom in closer to load historical vegetation."
+          "Zoom in closer to load GLO 1800s vegetation."
 
         );
 
@@ -2132,7 +2180,7 @@
 
         setStatus(
 
-          "Move the map into Michigan to load historical vegetation."
+          "Move the map into Michigan to load GLO 1800s vegetation."
 
         );
 
@@ -2297,7 +2345,7 @@
 
           setStatus(
 
-            "No historical vegetation polygons were returned."
+            "No GLO 1800s vegetation polygons were returned."
 
           );
 
@@ -2306,11 +2354,9 @@
         }
 
 
-        /*
-         * --------------------------------------------------
-         * REMOVE OLD VEGETATION LAYER
-         * --------------------------------------------------
-         */
+        /* --------------------------------------------------
+           REMOVE OLD VEGETATION LAYER
+           -------------------------------------------------- */
 
         if (vegetationLayer) {
 
@@ -2321,11 +2367,9 @@
         }
 
 
-        /*
-         * --------------------------------------------------
-         * CREATE NEW VEGETATION LAYER
-         * --------------------------------------------------
-         */
+        /* --------------------------------------------------
+           CREATE NEW VEGETATION LAYER
+           -------------------------------------------------- */
 
         vegetationLayer =
 
@@ -2391,9 +2435,7 @@
 
 
                   /*
-                   * -----------------------------------------
                    * REPRESENTATIVE POINT
-                   * -----------------------------------------
                    */
 
                   let polygonCenter;
@@ -2427,9 +2469,7 @@
 
 
                   /*
-                   * -----------------------------------------
                    * MNFI COMMUNITY LINK
-                   * -----------------------------------------
                    */
 
                   const communityLink =
@@ -2446,9 +2486,7 @@
 
 
                   /*
-                   * -----------------------------------------
                    * POPUP CONTENT
-                   * -----------------------------------------
                    */
 
                   let popup =
@@ -2493,9 +2531,7 @@
 
 
                   /*
-                   * -----------------------------------------
                    * BIND POPUP
-                   * -----------------------------------------
                    */
 
                   layer.bindPopup(
@@ -2519,9 +2555,7 @@
 
 
                   /*
-                   * -----------------------------------------
                    * CLICK
-                   * -----------------------------------------
                    */
 
                   layer.on(
@@ -2552,9 +2586,7 @@
 
 
                   /*
-                   * -----------------------------------------
                    * TOUCH START
-                   * -----------------------------------------
                    */
 
                   layer.on(
@@ -2571,9 +2603,7 @@
 
 
                   /*
-                   * -----------------------------------------
                    * MOUSEOVER
-                   * -----------------------------------------
                    */
 
                   layer.on(
@@ -2601,9 +2631,7 @@
 
 
                   /*
-                   * -----------------------------------------
                    * MOUSEOUT
-                   * -----------------------------------------
                    */
 
                   layer.on(
@@ -2628,9 +2656,7 @@
 
 
                   /*
-                   * -----------------------------------------
                    * POPUP OPEN
-                   * -----------------------------------------
                    */
 
                   layer.on(
@@ -2651,9 +2677,7 @@
 
 
                   /*
-                   * -----------------------------------------
                    * POPUP CLOSE
-                   * -----------------------------------------
                    */
 
                   layer.on(
@@ -2681,17 +2705,21 @@
         );
 
 
-        setStatus(
+        /*
+         * If GPS details are hidden, leave status empty.
+         */
 
-          "Historical vegetation ON<br>" +
+        if (gpsDetailsVisible) {
 
-          "Michigan: " +
+          displayGPSDetails();
 
-          data.features.length +
+        }
 
-          " polygons loaded"
+        else {
 
-        );
+          setStatus("");
+
+        }
 
       }
 
@@ -2700,7 +2728,7 @@
 
         console.error(
 
-          "Vegetation loading error:",
+          "GLO 1800s loading error:",
           error
 
         );
@@ -2708,7 +2736,7 @@
 
         setStatus(
 
-          "Vegetation error:<br>" +
+          "GLO 1800s error:<br>" +
           error.message
 
         );
@@ -2719,7 +2747,7 @@
 
 
     /* =====================================================
-       CURRENT VEGETATION TOGGLE
+       WHAT WAS HERE TOGGLE
        ===================================================== */
 
     function toggleCurrentVegetation() {
@@ -2797,7 +2825,7 @@
 
 
     /* =====================================================
-       UPDATE CURRENT VEGETATION
+       UPDATE WHAT WAS HERE
        ===================================================== */
 
     async function updateCurrentVegetation(
@@ -3028,6 +3056,7 @@
             coverType,
 
             latitude,
+
             longitude
 
           );
@@ -3102,7 +3131,7 @@
 
         console.error(
 
-          "Current vegetation error:",
+          "Historical vegetation error:",
           error
 
         );
@@ -3305,12 +3334,7 @@
 
 
         /*
-         * Opening a Leaflet popup can cause the map to
-         * automatically pan so the popup is visible.
-         *
-         * That pan fires "moveend".
-         *
-         * If a popup is currently open, do NOT reload.
+         * Do not reload while a popup is open.
          */
 
         if (popupIsOpen) {
