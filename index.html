@@ -500,13 +500,29 @@
        ===================================================== */
 
     const map =
-      L.map("map").setView(
+      L.map("map", {
+
+        zoomControl: false
+
+      }).setView(
 
         [44.5, -84.5],
 
         7
 
       );
+
+
+    /*
+     * Move Leaflet's zoom controls from the default
+     * upper-left position to the upper-right.
+     */
+
+    L.control.zoom({
+
+      position: "topright"
+
+    }).addTo(map);
 
 
     /* =====================================================
@@ -3042,7 +3058,6 @@
             coverType,
 
             latitude,
-
             longitude
 
           );
