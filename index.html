@@ -919,7 +919,17 @@
         "https://mnfi.anr.msu.edu/communities/description/10655/southern-hardwood-swamp",
 
       "hardwood-conifer swamp":
-        "https://mnfi.anr.msu.edu/communities/description/10656/hardwood-conifer-swamp"
+        "https://mnfi.anr.msu.edu/communities/description/10656/hardwood-conifer-swamp",
+
+      /*
+       * Cedar swamp / Rich Conifer Swamp
+       *
+       * MNFI identifies Rich Conifer Swamp as the
+       * community corresponding to cedar swamp.
+       */
+
+      "cedar swamp":
+        "https://mnfi.anr.msu.edu/communities/description/10652/rich-conifer-swamp"
 
     };
 
@@ -1408,6 +1418,39 @@
           url:
             mnfiCommunityURLs[
               "mesic northern forest"
+            ],
+
+          tensionSensitive:
+            false
+
+        };
+
+      }
+
+
+      /* ---------------------------------------------------
+         CEDAR SWAMP
+         ---------------------------------------------------
+
+         GLO's Cedar Swamp category is linked to
+         MNFI's Rich Conifer Swamp community.
+         --------------------------------------------------- */
+
+      if (
+
+        type ===
+        "CEDAR SWAMP"
+
+      ) {
+
+        return {
+
+          name:
+            "Rich Conifer Swamp",
+
+          url:
+            mnfiCommunityURLs[
+              "cedar swamp"
             ],
 
           tensionSensitive:
