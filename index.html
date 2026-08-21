@@ -893,7 +893,11 @@
        *
        * Dry-mesic Southern Forest = 10685
        *
-       * These are intentionally separate.
+       * Oak Barrens = 10693
+       *
+       * Oak-Pine Barrens = 10692
+       *
+       * Pine Barrens = 10694
        */
 
       "mesic northern forest":
@@ -985,18 +989,6 @@
 
       /* ---------------------------------------------------
          BEECH-SUGAR MAPLE FOREST
-         ---------------------------------------------------
-
-         This is the critical lookup.
-
-         South of the tension zone:
-           Mesic Southern Forest
-
-         North of the tension zone:
-           Mesic Northern Forest
-
-         Eaton County therefore correctly resolves
-         to Mesic Southern Forest.
          --------------------------------------------------- */
 
       if (
@@ -1150,99 +1142,6 @@
           url:
             mnfiCommunityURLs[
               "mesic northern forest"
-            ],
-
-          tensionSensitive:
-            false
-
-        };
-
-      }
-
-
-      /* ---------------------------------------------------
-         OAK BARRENS
-         --------------------------------------------------- */
-
-      if (
-
-        type ===
-        "OAK BARRENS"
-
-      ) {
-
-        return {
-
-          name:
-            "Oak Barrens",
-
-          url:
-            mnfiCommunityURLs[
-              "oak barrens"
-            ],
-
-          tensionSensitive:
-            false
-
-        };
-
-      }
-
-
-      /* ---------------------------------------------------
-         OAK-PINE BARRENS
-         ---------------------------------------------------
-
-         Handle both slash and dash spellings.
-         --------------------------------------------------- */
-
-      if (
-
-        type ===
-        "OAK/PINE BARRENS" ||
-
-        type ===
-        "OAK-PINE BARRENS"
-
-      ) {
-
-        return {
-
-          name:
-            "Oak-Pine Barrens",
-
-          url:
-            mnfiCommunityURLs[
-              "oak-pine barrens"
-            ],
-
-          tensionSensitive:
-            false
-
-        };
-
-      }
-
-
-      /* ---------------------------------------------------
-         PINE BARRENS
-         --------------------------------------------------- */
-
-      if (
-
-        type ===
-        "PINE BARRENS"
-
-      ) {
-
-        return {
-
-          name:
-            "Pine Barrens",
-
-          url:
-            mnfiCommunityURLs[
-              "pine barrens"
             ],
 
           tensionSensitive:
@@ -1535,11 +1434,110 @@
 
 
       /* ---------------------------------------------------
-         CEDAR SWAMP
+         BLACK OAK BARREN
          ---------------------------------------------------
 
-         GLO's Cedar Swamp category is linked to
-         MNFI's Rich Conifer Swamp community.
+         GLO's BLACK OAK BARREN category is linked to
+         MNFI's Oak Barrens community.
+
+         MNFI describes Oak Barrens as a fire-dependent
+         savanna dominated by oaks, with black oak and
+         white oak typically dominating the overstory.
+
+         MNFI community ID: 10693
+         --------------------------------------------------- */
+
+      if (
+
+        type ===
+        "BLACK OAK BARREN"
+
+      ) {
+
+        return {
+
+          name:
+            "Oak Barrens",
+
+          url:
+            mnfiCommunityURLs[
+              "oak barrens"
+            ],
+
+          tensionSensitive:
+            false
+
+        };
+
+      }
+
+
+      /* ---------------------------------------------------
+         OAK/PINE BARRENS
+         ---------------------------------------------------
+
+         GLO's Oak/Pine Barrens category is linked to
+         MNFI's Oak-Pine Barrens community.
+
+         MNFI community ID: 10692
+         --------------------------------------------------- */
+
+      if (
+
+        type ===
+        "OAK/PINE BARRENS"
+
+      ) {
+
+        return {
+
+          name:
+            "Oak-Pine Barrens",
+
+          url:
+            mnfiCommunityURLs[
+              "oak-pine barrens"
+            ],
+
+          tensionSensitive:
+            false
+
+        };
+
+      }
+
+
+      /* ---------------------------------------------------
+         PINE BARRENS
+         --------------------------------------------------- */
+
+      if (
+
+        type ===
+        "PINE BARRENS"
+
+      ) {
+
+        return {
+
+          name:
+            "Pine Barrens",
+
+          url:
+            mnfiCommunityURLs[
+              "pine barrens"
+            ],
+
+          tensionSensitive:
+            false
+
+        };
+
+      }
+
+
+      /* ---------------------------------------------------
+         CEDAR SWAMP
          --------------------------------------------------- */
 
       if (
@@ -1569,16 +1567,6 @@
 
       /* ---------------------------------------------------
          MIXED CONIFER SWAMP
-         ---------------------------------------------------
-
-         MNFI's current classification uses
-         Hardwood-Conifer Swamp for a statewide
-         minerotrophic swamp containing both hardwoods
-         and conifers.
-
-         This is preferable to Rich Conifer Swamp,
-         which is principally a northern, cedar-dominated
-         community.
          --------------------------------------------------- */
 
       if (
@@ -1608,10 +1596,6 @@
 
       /* ---------------------------------------------------
          MIXED HARDWOOD SWAMP
-         ---------------------------------------------------
-
-         Southern Michigan mixed hardwood swamp polygons
-         are linked to Southern Hardwood Swamp.
          --------------------------------------------------- */
 
       if (
@@ -1827,11 +1811,6 @@
         "active"
       );
 
-
-      /*
-       * No GPS information is shown in the status
-       * area unless GPS Details is opened.
-       */
 
       setStatus("");
 
@@ -2128,11 +2107,6 @@
             }
 
 
-            /*
-             * GPS errors are only shown if GPS Details
-             * is currently open.
-             */
-
             if (gpsDetailsVisible) {
 
               setStatus(
@@ -2298,10 +2272,6 @@
         }
 
 
-        /*
-         * Don't overwrite GPS details if they are open.
-         */
-
         if (gpsDetailsVisible) {
 
           displayGPSDetails();
@@ -2386,10 +2356,6 @@
 
       }
 
-
-      /*
-       * Avoid unnecessarily querying the same area.
-       */
 
       if (lastVegetationCenter) {
 
@@ -2552,9 +2518,7 @@
         }
 
 
-        /*
-         * REMOVE OLD VEGETATION LAYER
-         */
+        /* REMOVE OLD VEGETATION LAYER */
 
         if (vegetationLayer) {
 
@@ -2565,9 +2529,7 @@
         }
 
 
-        /*
-         * CREATE NEW VEGETATION LAYER
-         */
+        /* CREATE NEW VEGETATION LAYER */
 
         vegetationLayer =
 
@@ -2624,9 +2586,7 @@
                     feature.properties;
 
 
-                  /*
-                   * REPRESENTATIVE POINT
-                   */
+                  /* REPRESENTATIVE POINT */
 
                   let polygonCenter;
 
@@ -2658,9 +2618,7 @@
                     "Unknown";
 
 
-                  /*
-                   * MNFI COMMUNITY LINK
-                   */
+                  /* MNFI COMMUNITY LINK */
 
                   const communityLink =
 
@@ -2675,9 +2633,7 @@
                     );
 
 
-                  /*
-                   * POPUP CONTENT
-                   */
+                  /* POPUP CONTENT */
 
                   let popup =
 
@@ -2716,19 +2672,11 @@
                     );
 
 
-                  /*
-                   * COMMUNITY LINK IS NOW
-                   * GUARANTEED TO START ON ITS
-                   * OWN LINE.
-                   */
-
                   popup +=
                     communityLink;
 
 
-                  /*
-                   * BIND POPUP
-                   */
+                  /* BIND POPUP */
 
                   layer.bindPopup(
 
@@ -2750,9 +2698,7 @@
                   );
 
 
-                  /*
-                   * CLICK
-                   */
+                  /* CLICK */
 
                   layer.on(
 
@@ -2781,9 +2727,7 @@
                   );
 
 
-                  /*
-                   * TOUCH START
-                   */
+                  /* TOUCH START */
 
                   layer.on(
 
@@ -2798,9 +2742,7 @@
                   );
 
 
-                  /*
-                   * MOUSEOVER
-                   */
+                  /* MOUSEOVER */
 
                   layer.on(
 
@@ -2826,9 +2768,7 @@
                   );
 
 
-                  /*
-                   * MOUSEOUT
-                   */
+                  /* MOUSEOUT */
 
                   layer.on(
 
@@ -2851,9 +2791,7 @@
                   );
 
 
-                  /*
-                   * POPUP OPEN
-                   */
+                  /* POPUP OPEN */
 
                   layer.on(
 
@@ -2872,9 +2810,7 @@
                   );
 
 
-                  /*
-                   * POPUP CLOSE
-                   */
+                  /* POPUP CLOSE */
 
                   layer.on(
 
@@ -2900,11 +2836,6 @@
           map
         );
 
-
-        /*
-         * Only show loading status if GPS Details
-         * is not being used.
-         */
 
         if (gpsDetailsVisible) {
 
@@ -3295,10 +3226,6 @@
           }
 
 
-          /*
-           * Link deliberately starts on its own line.
-           */
-
           details +=
 
             '<a class="mnfi-link" ' +
@@ -3458,9 +3385,6 @@
 
         "MUSKEG/BOG":
           "rgb(227,181,132)",
-
-        "OAK BARRENS":
-          "rgb(210,160,128)",
 
         "OAK-HICKORY FOREST":
           "rgb(219,173,132)",
