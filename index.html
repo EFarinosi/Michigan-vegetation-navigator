@@ -912,6 +912,19 @@
         "https://mnfi.anr.msu.edu/communities/description/10683/dry-northern-forest",
 
       /*
+       * Barrens
+       */
+
+      "oak barrens":
+        "https://mnfi.anr.msu.edu/communities/description/10693/oak-barrens",
+
+      "oak-pine barrens":
+        "https://mnfi.anr.msu.edu/communities/description/10692/oak-pine-barrens",
+
+      "pine barrens":
+        "https://mnfi.anr.msu.edu/communities/description/10694/pine-barrens",
+
+      /*
        * Swamp classifications
        */
 
@@ -1137,6 +1150,99 @@
           url:
             mnfiCommunityURLs[
               "mesic northern forest"
+            ],
+
+          tensionSensitive:
+            false
+
+        };
+
+      }
+
+
+      /* ---------------------------------------------------
+         OAK BARRENS
+         --------------------------------------------------- */
+
+      if (
+
+        type ===
+        "OAK BARRENS"
+
+      ) {
+
+        return {
+
+          name:
+            "Oak Barrens",
+
+          url:
+            mnfiCommunityURLs[
+              "oak barrens"
+            ],
+
+          tensionSensitive:
+            false
+
+        };
+
+      }
+
+
+      /* ---------------------------------------------------
+         OAK-PINE BARRENS
+         ---------------------------------------------------
+
+         Handle both slash and dash spellings.
+         --------------------------------------------------- */
+
+      if (
+
+        type ===
+        "OAK/PINE BARRENS" ||
+
+        type ===
+        "OAK-PINE BARRENS"
+
+      ) {
+
+        return {
+
+          name:
+            "Oak-Pine Barrens",
+
+          url:
+            mnfiCommunityURLs[
+              "oak-pine barrens"
+            ],
+
+          tensionSensitive:
+            false
+
+        };
+
+      }
+
+
+      /* ---------------------------------------------------
+         PINE BARRENS
+         --------------------------------------------------- */
+
+      if (
+
+        type ===
+        "PINE BARRENS"
+
+      ) {
+
+        return {
+
+          name:
+            "Pine Barrens",
+
+          url:
+            mnfiCommunityURLs[
+              "pine barrens"
             ],
 
           tensionSensitive:
@@ -3352,6 +3458,9 @@
 
         "MUSKEG/BOG":
           "rgb(227,181,132)",
+
+        "OAK BARRENS":
+          "rgb(210,160,128)",
 
         "OAK-HICKORY FOREST":
           "rgb(219,173,132)",
