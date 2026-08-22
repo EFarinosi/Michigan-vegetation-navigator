@@ -239,7 +239,7 @@
 
 
     /* =====================================================
-       MNFI COMMUNITY LINK
+       MNFI COMMUNITY LINKS
        ===================================================== */
 
     .mnfi-link {
@@ -270,6 +270,53 @@
     .mnfi-link:hover {
 
       background: #1f5035;
+
+    }
+
+
+    /* =====================================================
+       MNFI LINK GROUP
+       ===================================================== */
+
+    .mnfi-link-group {
+
+      margin-top: 8px;
+
+    }
+
+
+    .mnfi-link-group-title {
+
+      font-size: 11px;
+
+      font-weight: bold;
+
+      color: #555;
+
+      margin-bottom: 4px;
+
+    }
+
+
+    /* =====================================================
+       MNFI CLASSIFICATION NOTE
+       ===================================================== */
+
+    .mnfi-note {
+
+      margin-top: 8px;
+
+      padding: 6px 8px;
+
+      border-radius: 5px;
+
+      background: #eeeeee;
+
+      color: #555;
+
+      font-size: 10px;
+
+      line-height: 1.3;
 
     }
 
@@ -712,11 +759,6 @@
           "active"
         );
 
-        /*
-         * No GPS information is displayed when
-         * details are hidden.
-         */
-
         setStatus("");
 
       }
@@ -886,19 +928,9 @@
 
     const mnfiCommunityURLs = {
 
-      /*
-       * IMPORTANT:
-       *
-       * Mesic Southern Forest = 10684
-       *
-       * Dry-mesic Southern Forest = 10685
-       *
-       * Oak Barrens = 10693
-       *
-       * Oak-Pine Barrens = 10692
-       *
-       * Pine Barrens = 10694
-       */
+      /* ---------------------------------------------------
+         FORESTS
+         --------------------------------------------------- */
 
       "mesic northern forest":
         "https://mnfi.anr.msu.edu/communities/description/10687/mesic-northern-forest",
@@ -915,9 +947,10 @@
       "dry northern forest":
         "https://mnfi.anr.msu.edu/communities/description/10683/dry-northern-forest",
 
-      /*
-       * Barrens
-       */
+
+      /* ---------------------------------------------------
+         BARRENS
+         --------------------------------------------------- */
 
       "oak barrens":
         "https://mnfi.anr.msu.edu/communities/description/10693/oak-barrens",
@@ -928,9 +961,13 @@
       "pine barrens":
         "https://mnfi.anr.msu.edu/communities/description/10694/pine-barrens",
 
-      /*
-       * Swamp classifications
-       */
+
+      /* ---------------------------------------------------
+         SWAMPS
+         --------------------------------------------------- */
+
+      "northern hardwood swamp":
+        "https://mnfi.anr.msu.edu/communities/description/10659/northern-hardwood-swamp",
 
       "southern hardwood swamp":
         "https://mnfi.anr.msu.edu/communities/description/10655/southern-hardwood-swamp",
@@ -938,21 +975,71 @@
       "hardwood-conifer swamp":
         "https://mnfi.anr.msu.edu/communities/description/10656/hardwood-conifer-swamp",
 
-      /*
-       * Cedar swamp / Rich Conifer Swamp
-       *
-       * MNFI identifies Rich Conifer Swamp as the
-       * community corresponding to cedar swamp.
-       */
+      "rich conifer swamp":
+        "https://mnfi.anr.msu.edu/communities/description/10652/rich-conifer-swamp",
 
-      "cedar swamp":
-        "https://mnfi.anr.msu.edu/communities/description/10652/rich-conifer-swamp"
+
+      /* ---------------------------------------------------
+         GRASSLAND / PRAIRIE
+         --------------------------------------------------- */
+
+      "dry sand prairie":
+        "https://mnfi.anr.msu.edu/communities/description/10698/dry-sand-prairie",
+
+      "dry-mesic prairie":
+        "https://mnfi.anr.msu.edu/communities/description/10708/dry-mesic-prairie",
+
+      "mesic prairie":
+        "https://mnfi.anr.msu.edu/communities/description/10697/mesic-prairie",
+
+      "mesic sand prairie":
+        "https://mnfi.anr.msu.edu/communities/description/10696/mesic-sand-prairie",
+
+      "wet prairie":
+        "https://mnfi.anr.msu.edu/communities/description/10665/wet-prairie",
+
+      "wet-mesic prairie":
+        "https://mnfi.anr.msu.edu/communities/description/10674/wet-mesic-prairie",
+
+      "wet-mesic sand prairie":
+        "https://mnfi.anr.msu.edu/communities/description/10682/wet-mesic-sand-prairie",
+
+
+      /* ---------------------------------------------------
+         SHRUB SWAMP / EMERGENT MARSH
+         --------------------------------------------------- */
+
+      "emergent marsh":
+        "https://mnfi.anr.msu.edu/communities/description/10654/emergent-marsh",
+
+      "northern shrub thicket":
+        "https://mnfi.anr.msu.edu/communities/description/10677/northern-shrub-thicket",
+
+      "southern shrub-carr":
+        "https://mnfi.anr.msu.edu/communities/description/10676/southern-shrub-carr",
+
+      "northern wet meadow":
+        "https://mnfi.anr.msu.edu/communities/description/10678/northern-wet-meadow",
+
+      "southern wet meadow":
+        "https://mnfi.anr.msu.edu/communities/description/10657/southern-wet-meadow",
+
+
+      /* ---------------------------------------------------
+         SAND DUNE
+         --------------------------------------------------- */
+
+      "open dunes":
+        "https://mnfi.anr.msu.edu/communities/description/10699/open-dunes",
+
+      "wooded dune and swale complex":
+        "https://mnfi.anr.msu.edu/communities/description/10679/wooded-dune-and-swale-complex"
 
     };
 
 
     /* =====================================================
-       DETERMINE MNFI COMMUNITY
+       DETERMINE MNFI COMMUNITY / COMMUNITIES
        ===================================================== */
 
     function getMNFICommunity(
@@ -992,10 +1079,8 @@
          --------------------------------------------------- */
 
       if (
-
         type ===
         "BEECH-SUGAR MAPLE FOREST"
-
       ) {
 
         if (south) {
@@ -1041,10 +1126,8 @@
          --------------------------------------------------- */
 
       if (
-
         type ===
         "BEECH-SUGAR MAPLE-HEMLOCK FOREST"
-
       ) {
 
         return {
@@ -1070,10 +1153,8 @@
          --------------------------------------------------- */
 
       if (
-
         type ===
         "SUGAR MAPLE-BASSWOOD FOREST"
-
       ) {
 
         return {
@@ -1099,10 +1180,8 @@
          --------------------------------------------------- */
 
       if (
-
         type ===
         "SUGAR MAPLE-HEMLOCK FOREST"
-
       ) {
 
         return {
@@ -1128,10 +1207,8 @@
          --------------------------------------------------- */
 
       if (
-
         type ===
         "SUGAR MAPLE-YELLOW BIRCH FOREST"
-
       ) {
 
         return {
@@ -1157,10 +1234,8 @@
          --------------------------------------------------- */
 
       if (
-
         type ===
         "OAK-HICKORY FOREST"
-
       ) {
 
         return {
@@ -1186,10 +1261,8 @@
          --------------------------------------------------- */
 
       if (
-
         type ===
         "MIXED OAK FOREST"
-
       ) {
 
         if (south) {
@@ -1235,10 +1308,8 @@
          --------------------------------------------------- */
 
       if (
-
         type ===
         "MIXED PINE-OAK FOREST"
-
       ) {
 
         return {
@@ -1264,10 +1335,8 @@
          --------------------------------------------------- */
 
       if (
-
         type ===
         "WHITE PINE-WHITE OAK FOREST"
-
       ) {
 
         return {
@@ -1293,10 +1362,8 @@
          --------------------------------------------------- */
 
       if (
-
         type ===
         "WHITE PINE-MIXED HARDWOOD FOREST"
-
       ) {
 
         return {
@@ -1322,10 +1389,8 @@
          --------------------------------------------------- */
 
       if (
-
         type ===
         "WHITE PINE-RED PINE FOREST"
-
       ) {
 
         return {
@@ -1351,10 +1416,8 @@
          --------------------------------------------------- */
 
       if (
-
         type ===
         "JACK PINE-RED PINE FOREST"
-
       ) {
 
         return {
@@ -1377,23 +1440,24 @@
 
       /* ---------------------------------------------------
          HEMLOCK-WHITE PINE FOREST
+
+         FINAL DECISION:
+         Dry-Mesic Northern Forest
          --------------------------------------------------- */
 
       if (
-
         type ===
         "HEMLOCK-WHITE PINE FOREST"
-
       ) {
 
         return {
 
           name:
-            "Mesic Northern Forest",
+            "Dry-mesic Northern Forest",
 
           url:
             mnfiCommunityURLs[
-              "mesic northern forest"
+              "dry-mesic northern forest"
             ],
 
           tensionSensitive:
@@ -1406,13 +1470,14 @@
 
       /* ---------------------------------------------------
          HEMLOCK-YELLOW BIRCH FOREST
+
+         FINAL DECISION:
+         Mesic Northern Forest
          --------------------------------------------------- */
 
       if (
-
         type ===
         "HEMLOCK-YELLOW BIRCH FOREST"
-
       ) {
 
         return {
@@ -1435,23 +1500,11 @@
 
       /* ---------------------------------------------------
          BLACK OAK BARREN
-         ---------------------------------------------------
-
-         GLO's BLACK OAK BARREN category is linked to
-         MNFI's Oak Barrens community.
-
-         MNFI describes Oak Barrens as a fire-dependent
-         savanna dominated by oaks, with black oak and
-         white oak typically dominating the overstory.
-
-         MNFI community ID: 10693
          --------------------------------------------------- */
 
       if (
-
         type ===
         "BLACK OAK BARREN"
-
       ) {
 
         return {
@@ -1474,19 +1527,11 @@
 
       /* ---------------------------------------------------
          OAK/PINE BARRENS
-         ---------------------------------------------------
-
-         GLO's Oak/Pine Barrens category is linked to
-         MNFI's Oak-Pine Barrens community.
-
-         MNFI community ID: 10692
          --------------------------------------------------- */
 
       if (
-
         type ===
         "OAK/PINE BARRENS"
-
       ) {
 
         return {
@@ -1512,10 +1557,8 @@
          --------------------------------------------------- */
 
       if (
-
         type ===
         "PINE BARRENS"
-
       ) {
 
         return {
@@ -1541,10 +1584,8 @@
          --------------------------------------------------- */
 
       if (
-
         type ===
         "CEDAR SWAMP"
-
       ) {
 
         return {
@@ -1554,7 +1595,7 @@
 
           url:
             mnfiCommunityURLs[
-              "cedar swamp"
+              "rich conifer swamp"
             ],
 
           tensionSensitive:
@@ -1567,23 +1608,29 @@
 
       /* ---------------------------------------------------
          MIXED CONIFER SWAMP
+
+         FINAL DECISION:
+         Rich Conifer Swamp
+
+         This reflects the decision that the GLO category
+         represents a conifer-dominated swamp containing
+         multiple conifer species, rather than necessarily
+         a hardwood-conifer mixture.
          --------------------------------------------------- */
 
       if (
-
         type ===
         "MIXED CONIFER SWAMP"
-
       ) {
 
         return {
 
           name:
-            "Hardwood-Conifer Swamp",
+            "Rich Conifer Swamp",
 
           url:
             mnfiCommunityURLs[
-              "hardwood-conifer swamp"
+              "rich conifer swamp"
             ],
 
           tensionSensitive:
@@ -1599,10 +1646,8 @@
          --------------------------------------------------- */
 
       if (
-
         type ===
         "MIXED HARDWOOD SWAMP"
-
       ) {
 
         return {
@@ -1624,6 +1669,345 @@
 
 
       /* ---------------------------------------------------
+         BLACK ASH SWAMP
+
+         FINAL MULTI-LINK CROSSWALK:
+           - Northern Hardwood Swamp
+           - Southern Hardwood Swamp
+           - Hardwood-Conifer Swamp
+         --------------------------------------------------- */
+
+      if (
+        type ===
+        "BLACK ASH SWAMP"
+      ) {
+
+        return {
+
+          communities: [
+
+            {
+
+              name:
+                "Northern Hardwood Swamp",
+
+              url:
+                mnfiCommunityURLs[
+                  "northern hardwood swamp"
+                ]
+
+            },
+
+            {
+
+              name:
+                "Southern Hardwood Swamp",
+
+              url:
+                mnfiCommunityURLs[
+                  "southern hardwood swamp"
+                ]
+
+            },
+
+            {
+
+              name:
+                "Hardwood-Conifer Swamp",
+
+              url:
+                mnfiCommunityURLs[
+                  "hardwood-conifer swamp"
+                ]
+
+            }
+
+          ],
+
+          tensionSensitive:
+            false
+
+        };
+
+      }
+
+
+      /* ---------------------------------------------------
+         ASPEN-BIRCH FOREST
+
+         FINAL DECISION:
+         No MNFI community link.
+
+         MNFI's current natural-community classification
+         does not contain a general early-successional
+         forest community equivalent to the GLO category.
+         --------------------------------------------------- */
+
+      if (
+        type ===
+        "ASPEN-BIRCH FOREST"
+      ) {
+
+        return {
+
+          note:
+            "MNFI's natural-community classification does not include an early-successional forest community equivalent to the GLO Aspen-Birch Forest category."
+
+        };
+
+      }
+
+
+      /* ---------------------------------------------------
+         GRASSLAND
+
+         MULTIPLE MNFI PRAIRIE LINKS
+         --------------------------------------------------- */
+
+      if (
+        type ===
+        "GRASSLAND"
+      ) {
+
+        return {
+
+          communities: [
+
+            {
+
+              name:
+                "Dry Sand Prairie",
+
+              url:
+                mnfiCommunityURLs[
+                  "dry sand prairie"
+                ]
+
+            },
+
+            {
+
+              name:
+                "Dry-mesic Prairie",
+
+              url:
+                mnfiCommunityURLs[
+                  "dry-mesic prairie"
+                ]
+
+            },
+
+            {
+
+              name:
+                "Mesic Prairie",
+
+              url:
+                mnfiCommunityURLs[
+                  "mesic prairie"
+                ]
+
+            },
+
+            {
+
+              name:
+                "Mesic Sand Prairie",
+
+              url:
+                mnfiCommunityURLs[
+                  "mesic sand prairie"
+                ]
+
+            },
+
+            {
+
+              name:
+                "Wet Prairie",
+
+              url:
+                mnfiCommunityURLs[
+                  "wet prairie"
+                ]
+
+            },
+
+            {
+
+              name:
+                "Wet-mesic Prairie",
+
+              url:
+                mnfiCommunityURLs[
+                  "wet-mesic prairie"
+                ]
+
+            },
+
+            {
+
+              name:
+                "Wet-mesic Sand Prairie",
+
+              url:
+                mnfiCommunityURLs[
+                  "wet-mesic sand prairie"
+                ]
+
+            }
+
+          ],
+
+          tensionSensitive:
+            false
+
+        };
+
+      }
+
+
+      /* ---------------------------------------------------
+         SHRUB SWAMP / EMERGENT MARSH
+
+         MULTIPLE MNFI WETLAND LINKS
+         --------------------------------------------------- */
+
+      if (
+        type ===
+        "SHRUB SWAMP/EMERGENT MARSH"
+      ) {
+
+        return {
+
+          communities: [
+
+            {
+
+              name:
+                "Emergent Marsh",
+
+              url:
+                mnfiCommunityURLs[
+                  "emergent marsh"
+                ]
+
+            },
+
+            {
+
+              name:
+                "Northern Shrub Thicket",
+
+              url:
+                mnfiCommunityURLs[
+                  "northern shrub thicket"
+                ]
+
+            },
+
+            {
+
+              name:
+                "Southern Shrub-carr",
+
+              url:
+                mnfiCommunityURLs[
+                  "southern shrub-carr"
+                ]
+
+            },
+
+            {
+
+              name:
+                "Northern Wet Meadow",
+
+              url:
+                mnfiCommunityURLs[
+                  "northern wet meadow"
+                ]
+
+            },
+
+            {
+
+              name:
+                "Southern Wet Meadow",
+
+              url:
+                mnfiCommunityURLs[
+                  "southern wet meadow"
+                ]
+
+            }
+
+          ],
+
+          tensionSensitive:
+            false
+
+        };
+
+      }
+
+
+      /* ---------------------------------------------------
+         SAND DUNE
+
+         FINAL MULTI-LINK CROSSWALK:
+           - Open Dunes
+           - Wooded Dune and Swale Complex
+
+         Intentionally excluded:
+           - Interdunal Wetland
+           - Sand and Gravel Beach
+         --------------------------------------------------- */
+
+      if (
+        type ===
+        "SAND DUNE"
+      ) {
+
+        return {
+
+          communities: [
+
+            {
+
+              name:
+                "Open Dunes",
+
+              url:
+                mnfiCommunityURLs[
+                  "open dunes"
+                ]
+
+            },
+
+            {
+
+              name:
+                "Wooded Dune and Swale Complex",
+
+              url:
+                mnfiCommunityURLs[
+                  "wooded dune and swale complex"
+                ]
+
+            }
+
+          ],
+
+          tensionSensitive:
+            false
+
+        };
+
+      }
+
+
+      /* ---------------------------------------------------
          NO MATCH
          --------------------------------------------------- */
 
@@ -1633,7 +2017,7 @@
 
 
     /* =====================================================
-       CREATE MNFI LINK
+       CREATE MNFI LINKS
        ===================================================== */
 
     function createMNFILink(
@@ -1661,22 +2045,110 @@
       }
 
 
-      let html =
+      let html = "";
 
-        '<a class="mnfi-link" ' +
 
-        'href="' +
-        community.url +
-        '" ' +
+      /* ---------------------------------------------------
+         SINGLE COMMUNITY
+         --------------------------------------------------- */
 
-        'target="_blank" ' +
+      if (
+        community.url &&
+        community.name
+      ) {
 
-        'rel="noopener noreferrer">' +
+        html +=
 
-        "View MNFI community page" +
+          '<a class="mnfi-link" ' +
 
-        "</a>";
+          'href="' +
+          community.url +
+          '" ' +
 
+          'target="_blank" ' +
+
+          'rel="noopener noreferrer">' +
+
+          "View MNFI: " +
+          community.name +
+
+          "</a>";
+
+      }
+
+
+      /* ---------------------------------------------------
+         MULTIPLE COMMUNITIES
+         --------------------------------------------------- */
+
+      if (
+        community.communities &&
+        community.communities.length > 0
+      ) {
+
+        html +=
+
+          '<div class="mnfi-link-group">' +
+
+          '<div class="mnfi-link-group-title">' +
+
+          "Potential MNFI community equivalents:" +
+
+          "</div>";
+
+
+        community.communities.forEach(
+
+          function(item) {
+
+            html +=
+
+              '<a class="mnfi-link" ' +
+
+              'href="' +
+              item.url +
+              '" ' +
+
+              'target="_blank" ' +
+
+              'rel="noopener noreferrer">' +
+
+              "View MNFI: " +
+              item.name +
+
+              "</a>";
+
+          }
+
+        );
+
+
+        html +=
+          "</div>";
+
+      }
+
+
+      /* ---------------------------------------------------
+         CLASSIFICATION NOTE
+         --------------------------------------------------- */
+
+      if (community.note) {
+
+        html +=
+
+          '<div class="mnfi-note">' +
+
+          community.note +
+
+          "</div>";
+
+      }
+
+
+      /* ---------------------------------------------------
+         TENSION ZONE NOTE
+         --------------------------------------------------- */
 
       if (
         community.tensionSensitive
@@ -3192,55 +3664,128 @@
 
         if (community) {
 
-          details +=
-
-            "<br><br>" +
-
-            "<strong>MNFI community:</strong> " +
-
-            community.name;
-
+          /*
+           * SINGLE COMMUNITY
+           */
 
           if (
-            community.tensionSensitive
+            community.name &&
+            community.url
           ) {
 
             details +=
 
-              "<br>" +
+              "<br><br>" +
 
-              (
+              "<strong>MNFI community:</strong> " +
 
-                isSouthOfTensionZone(
-                  latitude,
-                  longitude
-                )
+              community.name;
 
-                  ? "South of"
-                  : "North of"
 
-              ) +
+            if (
+              community.tensionSensitive
+            ) {
 
-              " approximate tension zone";
+              details +=
+
+                "<br>" +
+
+                (
+
+                  isSouthOfTensionZone(
+                    latitude,
+                    longitude
+                  )
+
+                    ? "South of"
+                    : "North of"
+
+                ) +
+
+                " approximate tension zone";
+
+            }
+
+
+            details +=
+
+              '<a class="mnfi-link" ' +
+
+              'href="' +
+              community.url +
+              '" ' +
+
+              'target="_blank" ' +
+
+              'rel="noopener noreferrer">' +
+
+              "View MNFI: " +
+              community.name +
+
+              "</a>";
 
           }
 
 
-          details +=
+          /*
+           * MULTIPLE COMMUNITIES
+           */
 
-            '<a class="mnfi-link" ' +
+          if (
+            community.communities &&
+            community.communities.length > 0
+          ) {
 
-            'href="' +
-            community.url +
-            '" ' +
+            details +=
 
-            'target="_blank" ' +
+              "<br><br>" +
 
-            'rel="noopener noreferrer">' +
+              "<strong>Potential MNFI community equivalents:</strong>";
 
-            "View MNFI community page" +
 
-            "</a>";
+            community.communities.forEach(
+
+              function(item) {
+
+                details +=
+
+                  '<a class="mnfi-link" ' +
+
+                  'href="' +
+                  item.url +
+                  '" ' +
+
+                  'target="_blank" ' +
+
+                  'rel="noopener noreferrer">' +
+
+                  "View MNFI: " +
+                  item.name +
+
+                  "</a>";
+
+              }
+
+            );
+
+          }
+
+
+          /*
+           * CLASSIFICATION NOTE
+           */
+
+          if (community.note) {
+
+            details +=
+
+              '<div class="mnfi-note">' +
+
+              community.note +
+
+              "</div>";
+
+          }
 
         }
 
