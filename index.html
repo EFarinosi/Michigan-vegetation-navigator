@@ -1,17 +1,18 @@
 <!DOCTYPE html>
+
 <html lang="en">
 
 <head>
 
   <meta charset="UTF-8">
 
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
+<meta
+name="viewport"
+content="width=device-width, initial-scale=1.0"
+
+>
 
   <title>Historical Vegetation Navigator</title>
-
 
   <!-- =====================================================
        LEAFLET
@@ -21,7 +22,6 @@
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
   >
-
 
   <style>
 
@@ -439,9 +439,7 @@
 
 </head>
 
-
 <body>
-
 
   <!-- =====================================================
        CONTROLS
@@ -449,88 +447,86 @@
 
   <div id="controls">
 
+```
+<button
+  id="gpsButton"
+  onclick="toggleGPS()"
+>
 
-    <button
-      id="gpsButton"
-      onclick="toggleGPS()"
-    >
+  GPS OFF
 
-      GPS OFF
-
-    </button>
-
-
-    <button
-      id="vegetationButton"
-      onclick="toggleVegetation()"
-    >
-
-      GLO 1800s OFF
-
-    </button>
+</button>
 
 
-    <button
-      id="currentButton"
-      onclick="toggleCurrentVegetation()"
-    >
+<button
+  id="vegetationButton"
+  onclick="toggleVegetation()"
+>
 
-      What Was Here?
+  GLO 1800s OFF
 
-    </button>
-
-
-    <button
-      id="gpsDetailsButton"
-      onclick="toggleGPSDetails()"
-    >
-
-      GPS Details
-
-    </button>
+</button>
 
 
-    <div id="status">
+<button
+  id="currentButton"
+  onclick="toggleCurrentVegetation()"
+>
 
-      GPS off
+  What Was Here?
 
-    </div>
-
-
-    <!-- CURRENT VEGETATION DISPLAY -->
-
-    <div id="currentVegetation">
-
-      <div id="currentTitle">
-
-        HISTORICAL VEGETATION AT YOUR LOCATION
-
-      </div>
+</button>
 
 
-      <div id="currentType">
+<button
+  id="gpsDetailsButton"
+  onclick="toggleGPSDetails()"
+>
 
-        Searching...
+  GPS Details
 
-      </div>
+</button>
 
 
-      <div id="currentDetails">
+<div id="status">
 
-      </div>
+  GPS off
 
-    </div>
+</div>
 
+
+<!-- CURRENT VEGETATION DISPLAY -->
+
+<div id="currentVegetation">
+
+  <div id="currentTitle">
+
+    HISTORICAL VEGETATION AT YOUR LOCATION
 
   </div>
 
+
+  <div id="currentType">
+
+    Searching...
+
+  </div>
+
+
+  <div id="currentDetails">
+
+  </div>
+
+</div>
+```
+
+  </div>
 
   <!-- =====================================================
        MAP
        ===================================================== -->
 
   <div id="map"></div>
-
 
   <!-- =====================================================
        LEAFLET
@@ -539,7 +535,6 @@
   <script
     src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
   </script>
-
 
   <script>
 
@@ -878,13 +873,17 @@
       const fraction =
 
         (
+
           longitude -
           westLon
+
         ) /
 
         (
+
           eastLon -
           westLon
+
         );
 
 
@@ -1440,9 +1439,6 @@
 
       /* ---------------------------------------------------
          HEMLOCK-WHITE PINE FOREST
-
-         FINAL DECISION:
-         Dry-Mesic Northern Forest
          --------------------------------------------------- */
 
       if (
@@ -1470,9 +1466,6 @@
 
       /* ---------------------------------------------------
          HEMLOCK-YELLOW BIRCH FOREST
-
-         FINAL DECISION:
-         Mesic Northern Forest
          --------------------------------------------------- */
 
       if (
@@ -1608,14 +1601,6 @@
 
       /* ---------------------------------------------------
          MIXED CONIFER SWAMP
-
-         FINAL DECISION:
-         Rich Conifer Swamp
-
-         This reflects the decision that the GLO category
-         represents a conifer-dominated swamp containing
-         multiple conifer species, rather than necessarily
-         a hardwood-conifer mixture.
          --------------------------------------------------- */
 
       if (
@@ -1670,11 +1655,6 @@
 
       /* ---------------------------------------------------
          BLACK ASH SWAMP
-
-         FINAL MULTI-LINK CROSSWALK:
-           - Northern Hardwood Swamp
-           - Southern Hardwood Swamp
-           - Hardwood-Conifer Swamp
          --------------------------------------------------- */
 
       if (
@@ -1734,13 +1714,6 @@
 
       /* ---------------------------------------------------
          ASPEN-BIRCH FOREST
-
-         FINAL DECISION:
-         No MNFI community link.
-
-         MNFI's current natural-community classification
-         does not contain a general early-successional
-         forest community equivalent to the GLO category.
          --------------------------------------------------- */
 
       if (
@@ -1760,8 +1733,6 @@
 
       /* ---------------------------------------------------
          GRASSLAND
-
-         MULTIPLE MNFI PRAIRIE LINKS
          --------------------------------------------------- */
 
       if (
@@ -1869,8 +1840,6 @@
 
       /* ---------------------------------------------------
          SHRUB SWAMP / EMERGENT MARSH
-
-         MULTIPLE MNFI WETLAND LINKS
          --------------------------------------------------- */
 
       if (
@@ -1954,14 +1923,6 @@
 
       /* ---------------------------------------------------
          SAND DUNE
-
-         FINAL MULTI-LINK CROSSWALK:
-           - Open Dunes
-           - Wooded Dune and Swale Complex
-
-         Intentionally excluded:
-           - Interdunal Wetland
-           - Sand and Gravel Beach
          --------------------------------------------------- */
 
       if (
@@ -3028,19 +2989,28 @@
                     );
 
 
+                  /*
+                   * MNFI's official renderer uses the
+                   * supplied RGB colors at full opacity
+                   * with no normal polygon outline.
+                   */
+
                   return {
 
                     color:
-                      "#555555",
+                      "transparent",
 
                     weight:
-                      1,
+                      0,
+
+                    opacity:
+                      0,
 
                     fillColor:
                       color,
 
                     fillOpacity:
-                      0.65
+                      1
 
                   };
 
@@ -3229,6 +3199,9 @@
 
                         color:
                           "#000000",
+
+                        opacity:
+                          1,
 
                         fillOpacity:
                           0.85
@@ -3678,7 +3651,6 @@
               "<br><br>" +
 
               "<strong>MNFI community:</strong> " +
-
               community.name;
 
 
@@ -3858,6 +3830,9 @@
 
     /* =====================================================
        MICHIGAN VEGETATION COLORS
+       
+       These RGB values are the official MNFI renderer
+       values used for the Circa-1800 land-cover layer.
        ===================================================== */
 
     function getMichiganVegetationColor(
@@ -3972,6 +3947,11 @@
 
       };
 
+
+      /*
+       * MNFI's renderer uses a neutral gray for an
+       * undetermined/unmatched category.
+       */
 
       return (
 
