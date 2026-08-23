@@ -126,6 +126,13 @@
     }
 
 
+    #forestServiceButton.active {
+
+      background: #245c9c;
+
+    }
+
+
     #currentButton.active {
 
       background: #245c9c;
@@ -471,6 +478,16 @@
 
 
     <button
+      id="forestServiceButton"
+      onclick="toggleForestService()"
+    >
+
+      USFS LAND OFF
+
+    </button>
+
+
+    <button
       id="currentButton"
       onclick="toggleCurrentVegetation()"
     >
@@ -648,6 +665,35 @@
      */
 
     let popupIsOpen = false;
+
+
+    /* =====================================================
+       FOREST SERVICE VARIABLES
+       ===================================================== */
+
+    let forestServiceLayer = null;
+
+    let forestServiceVisible = false;
+
+    let lastForestServiceCenter = null;
+
+    let forestServiceReloadTimer = null;
+
+
+    /*
+     * Official USDA Forest Service Basic Ownership service.
+     *
+     * This is the actual Forest Service ownership layer,
+     * rather than a National Forest proclamation boundary.
+     *
+     * OWNERCLASSIFICATION:
+     *   USDA FOREST SERVICE
+     *   NON-FS
+     */
+
+    const forestServiceURL =
+
+      "https://apps.fs.usda.gov/arcx/rest/services/EDW/EDW_BasicOwnership_02/MapServer/0";
 
 
     /* =====================================================
@@ -1991,6 +2037,7 @@
           "<strong>" +
 
           sideText +
+
           " the approximate floristic tension zone</strong> " +
 
           "using the current straight-line approximation." +
@@ -2304,6 +2351,15 @@
 
                 }
 
+
+                if (
+                  forestServiceVisible
+                ) {
+
+                  loadForestService();
+
+                }
+
               }
 
               else if (
@@ -2569,6 +2625,594 @@
 
 
     /* =====================================================
+       FOREST SERVICE TOGGLE
+       ===================================================== */
+
+    function toggleForestService() {
+
+      forestServiceVisible =
+        !forestServiceVisible;
+
+
+      const button =
+        document.getElementById(
+          "forestServiceButton"
+        );
+
+
+      if (!forestServiceVisible) {
+
+        button.innerHTML =
+          "USFS LAND OFF";
+
+        button.classList.remove(
+          "active"
+        );
+
+
+        if (forestServiceLayer) {
+
+          map.removeLayer(
+            forestServiceLayer
+          );
+
+        }
+
+
+        if (gpsDetailsVisible) {
+
+          displayGPSDetails();
+
+        }
+
+        else {
+
+          setStatus("");
+
+        }
+
+
+        return;
+
+      }
+
+
+      button.innerHTML =
+        "USFS LAND ON";
+
+      button.classList.add(
+        "active"
+      );
+
+
+      setStatus(
+        "Loading Forest Service ownership..."
+      );
+
+
+      lastForestServiceCenter =
+        null;
+
+
+      loadForestService();
+
+    }
+
+
+    /* =====================================================
+       LOAD FOREST SERVICE OWNERSHIP
+       ===================================================== */
+
+    async function loadForestService() {
+
+      /*
+       * Forest Service ownership is useful at a somewhat
+       * broader scale than the detailed GLO polygons.
+       */
+
+      if (map.getZoom() < 8) {
+
+        setStatus(
+
+          "Zoom in closer to view Forest Service ownership."
+
+        );
+
+        return;
+
+      }
+
+
+      const center =
+        map.getCenter();
+
+
+      if (lastForestServiceCenter) {
+
+        const movedDistance =
+
+          map.distance(
+
+            lastForestServiceCenter,
+            center
+
+          );
+
+
+        if (
+          movedDistance < 1000
+        ) {
+
+          return;
+
+        }
+
+      }
+
+
+      lastForestServiceCenter =
+        center;
+
+
+      const bounds =
+        map.getBounds();
+
+
+      const west =
+        bounds.getWest();
+
+      const south =
+        bounds.getSouth();
+
+      const east =
+        bounds.getEast();
+
+      const north =
+        bounds.getNorth();
+
+
+      const geometry =
+
+        JSON.stringify({
+
+          xmin:
+            west,
+
+          ymin:
+            south,
+
+          xmax:
+            east,
+
+          ymax:
+            north,
+
+          spatialReference: {
+
+            wkid:
+              4326
+
+          }
+
+        });
+
+
+      const params =
+
+        new URLSearchParams({
+
+          where:
+            "OWNERCLASSIFICATION = 'USDA FOREST SERVICE'",
+
+          geometry:
+            geometry,
+
+          geometryType:
+            "esriGeometryEnvelope",
+
+          inSR:
+            "4326",
+
+          spatialRel:
+            "esriSpatialRelIntersects",
+
+          outFields:
+            "OWNERCLASSIFICATION,FORESTNAME,REGION",
+
+          returnGeometry:
+            "true",
+
+          outSR:
+            "4326",
+
+          f:
+            "geojson"
+
+        });
+
+
+      try {
+
+        const response =
+
+          await fetch(
+
+            forestServiceURL +
+            "/query?" +
+            params.toString()
+
+          );
+
+
+        if (!response.ok) {
+
+          throw new Error(
+
+            "Forest Service server returned HTTP " +
+            response.status
+
+          );
+
+        }
+
+
+        const data =
+          await response.json();
+
+
+        if (data.error) {
+
+          throw new Error(
+
+            data.error.message ||
+            "Forest Service ArcGIS returned an error."
+
+          );
+
+        }
+
+
+        if (
+          !data.features ||
+          data.features.length === 0
+        ) {
+
+          if (forestServiceLayer) {
+
+            map.removeLayer(
+              forestServiceLayer
+            );
+
+          }
+
+
+          setStatus(
+
+            "No Forest Service-owned land was found in the current map area."
+
+          );
+
+          return;
+
+        }
+
+
+        /*
+         * REMOVE OLD FOREST SERVICE LAYER
+         */
+
+        if (forestServiceLayer) {
+
+          map.removeLayer(
+            forestServiceLayer
+          );
+
+        }
+
+
+        /*
+         * CREATE FOREST SERVICE LAYER
+         *
+         * 50% opacity so the OpenStreetMap basemap
+         * and MNFI vegetation can remain visible.
+         */
+
+        forestServiceLayer =
+
+          L.geoJSON(
+
+            data,
+
+            {
+
+              style:
+
+                function() {
+
+                  return {
+
+                    color:
+                      "#174a8b",
+
+                    weight:
+                      1.2,
+
+                    opacity:
+                      0.9,
+
+                    fillColor:
+                      "#3182bd",
+
+                    fillOpacity:
+                      0.50
+
+                  };
+
+                },
+
+
+              onEachFeature:
+
+                function(
+                  feature,
+                  layer
+                ) {
+
+                  const p =
+                    feature.properties;
+
+
+                  const forestName =
+
+                    p.FORESTNAME ||
+                    "Forest Service land";
+
+
+                  const region =
+
+                    p.REGION ||
+                    "Unknown";
+
+
+                  let popup =
+
+                    "<strong>" +
+
+                    "U.S. Forest Service Land" +
+
+                    "</strong>" +
+
+                    "<br><br>" +
+
+                    "<strong>Forest:</strong><br>" +
+
+                    forestName +
+
+                    "<br><br>" +
+
+                    "<strong>Forest Service Region:</strong> " +
+
+                    region;
+
+
+                  popup +=
+
+                    '<div class="mnfi-note">' +
+
+                    "This layer represents Forest Service surface ownership. " +
+
+                    "It is intended for general mapping and analysis and is not a legal determination of property ownership or boundary." +
+
+                    "</div>";
+
+
+                  layer.bindPopup(
+
+                    popup,
+
+                    {
+
+                      closeButton:
+                        true,
+
+                      autoPan:
+                        true,
+
+                      autoPanPadding:
+                        [30, 30]
+
+                    }
+
+                  );
+
+
+                  layer.on(
+
+                    "click",
+
+                    function(e) {
+
+                      pauseGPSAutoCentering();
+
+
+                      if (
+                        e.originalEvent
+                      ) {
+
+                        L.DomEvent.stopPropagation(
+                          e.originalEvent
+                        );
+
+                      }
+
+
+                      layer.openPopup();
+
+                    }
+
+                  );
+
+
+                  layer.on(
+
+                    "touchstart",
+
+                    function() {
+
+                      pauseGPSAutoCentering();
+
+                    }
+
+                  );
+
+
+                  layer.on(
+
+                    "mouseover",
+
+                    function(e) {
+
+                      e.target.setStyle({
+
+                        weight:
+                          2.5,
+
+                        color:
+                          "#0d3568",
+
+                        fillOpacity:
+                          0.65
+
+                      });
+
+                    }
+
+                  );
+
+
+                  layer.on(
+
+                    "mouseout",
+
+                    function(e) {
+
+                      if (
+                        forestServiceLayer
+                      ) {
+
+                        forestServiceLayer.resetStyle(
+                          e.target
+                        );
+
+                      }
+
+                    }
+
+                  );
+
+
+                  layer.on(
+
+                    "popupopen",
+
+                    function() {
+
+                      popupIsOpen =
+                        true;
+
+
+                      pauseGPSAutoCentering();
+
+                    }
+
+                  );
+
+
+                  layer.on(
+
+                    "popupclose",
+
+                    function() {
+
+                      popupIsOpen =
+                        false;
+
+                    }
+
+                  );
+
+                }
+
+            }
+
+          );
+
+
+        /*
+         * IMPORTANT:
+         *
+         * Forest Service layer is added first.
+         * MNFI vegetation is subsequently brought to
+         * the front whenever it exists.
+         */
+
+        forestServiceLayer.addTo(
+          map
+        );
+
+
+        if (vegetationLayer) {
+
+          vegetationLayer.bringToFront();
+
+        }
+
+
+        if (gpsMarker) {
+
+          gpsMarker.bringToFront();
+
+        }
+
+
+        if (gpsDetailsVisible) {
+
+          displayGPSDetails();
+
+        }
+
+        else {
+
+          setStatus("");
+
+        }
+
+      }
+
+
+      catch(error) {
+
+        console.error(
+
+          "Forest Service loading error:",
+          error
+
+        );
+
+
+        setStatus(
+
+          "Forest Service error:<br>" +
+          error.message
+
+        );
+
+      }
+
+    }
+
+
+    /* =====================================================
        LOAD VEGETATION
        ===================================================== */
 
@@ -2811,22 +3455,13 @@
                   return {
 
                     color:
-                      "#888888",
+                      "#555555",
 
                     weight:
-                      0.7,
+                      1,
 
                     fillColor:
                       color,
-
-                    /*
-                     * CHANGED FROM 0.65 TO 0.50
-                     *
-                     * This lets the OpenStreetMap
-                     * basemap remain substantially
-                     * more visible beneath the
-                     * historical vegetation layer.
-                     */
 
                     fillOpacity:
                       0.50
@@ -3000,10 +3635,10 @@
                       e.target.setStyle({
 
                         weight:
-                          2,
+                          3,
 
                         color:
-                          "#444444",
+                          "#000000",
 
                         fillOpacity:
                           0.65
@@ -3076,6 +3711,21 @@
         vegetationLayer.addTo(
           map
         );
+
+
+        /*
+         * Always keep the historical vegetation
+         * above Forest Service ownership.
+         */
+
+        vegetationLayer.bringToFront();
+
+
+        if (gpsMarker) {
+
+          gpsMarker.bringToFront();
+
+        }
 
 
         if (gpsDetailsVisible) {
@@ -3632,13 +4282,12 @@
 
 
       /*
-       * Existing MNFI/ArcGIS palette retained here.
+       * These are the MNFI viewer color values recovered
+       * from the map's underlying configuration.
        *
        * IMPORTANT:
-       * This is NOT being represented as a verified
-       * pixel-for-pixel copy of the current MNFI web
-       * viewer. The publicly exposed Michigan services
-       * contain more than one renderer for this dataset.
+       * The colors below are the actual cover-type
+       * assignments, rather than an interpolated palette.
        */
 
       const colors = {
@@ -3750,18 +4399,52 @@
 
 
     /* =====================================================
-       MAP MOVE / VEGETATION RELOAD
+       MAP MOVE / VEGETATION + USFS RELOAD
        ===================================================== */
-
-    let reloadTimer =
-      null;
-
 
     map.on(
 
       "moveend",
 
       function() {
+
+        /*
+         * FOREST SERVICE
+         */
+
+        if (
+          forestServiceVisible
+        ) {
+
+          clearTimeout(
+            forestServiceReloadTimer
+          );
+
+
+          forestServiceReloadTimer =
+
+            setTimeout(
+
+              function() {
+
+                if (!popupIsOpen) {
+
+                  loadForestService();
+
+                }
+
+              },
+
+              750
+
+            );
+
+        }
+
+
+        /*
+         * HISTORICAL VEGETATION
+         */
 
         if (!vegetationVisible) {
 
@@ -3806,6 +4489,14 @@
       }
 
     );
+
+
+    /* =====================================================
+       VEGETATION RELOAD TIMER
+       ===================================================== */
+
+    let reloadTimer =
+      null;
 
 
     /* =====================================================
