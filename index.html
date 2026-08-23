@@ -126,13 +126,6 @@
     }
 
 
-    #forestServiceButton.active {
-
-      background: #245c9c;
-
-    }
-
-
     #currentButton.active {
 
       background: #245c9c;
@@ -350,6 +343,26 @@
 
 
     /* =====================================================
+       LAYER CONTROL
+       ===================================================== */
+
+    .leaflet-control-layers {
+
+      font-size: 12px;
+
+      line-height: 1.4;
+
+    }
+
+
+    .leaflet-control-layers label {
+
+      margin-bottom: 2px;
+
+    }
+
+
+    /* =====================================================
        SMALL SCREENS
        ===================================================== */
 
@@ -478,16 +491,6 @@
 
 
     <button
-      id="forestServiceButton"
-      onclick="toggleForestService()"
-    >
-
-      USFS LAND OFF
-
-    </button>
-
-
-    <button
       id="currentButton"
       onclick="toggleCurrentVegetation()"
     >
@@ -596,20 +599,58 @@
        BASEMAP
        ===================================================== */
 
-    L.tileLayer(
+    /*
+     * Light Gray Canvas is intentionally used here instead
+     * of the standard OSM basemap.
+     *
+     * It provides roads, water, parks and basic geographic
+     * context without the strong land-cover colors of OSM.
+     */
 
-      "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    const lightGrayBase =
 
-      {
+      L.tileLayer(
 
-        maxZoom: 19,
+        "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}",
 
-        attribution:
-          "&copy; OpenStreetMap contributors"
+        {
 
-      }
+          maxZoom:
+            16,
 
-    ).addTo(map);
+          attribution:
+            "Tiles &copy; Esri &mdash; Esri, TomTom, Garmin, FAO, NOAA, USGS, &copy; OpenStreetMap contributors, and the GIS User Community"
+
+        }
+
+      ).addTo(map);
+
+
+    /*
+     * Optional reference layer containing place labels,
+     * roads and other reference information.
+     *
+     * Keeping this separate allows it to remain visually
+     * subdued underneath the thematic layers.
+     */
+
+    const lightGrayLabels =
+
+      L.tileLayer(
+
+        "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}",
+
+        {
+
+          maxZoom:
+            16,
+
+          attribution:
+            ""
+
+        }
+
+      ).addTo(map);
 
 
     /* =====================================================
@@ -668,35 +709,6 @@
 
 
     /* =====================================================
-       FOREST SERVICE VARIABLES
-       ===================================================== */
-
-    let forestServiceLayer = null;
-
-    let forestServiceVisible = false;
-
-    let lastForestServiceCenter = null;
-
-    let forestServiceReloadTimer = null;
-
-
-    /*
-     * Official USDA Forest Service Basic Ownership service.
-     *
-     * This is the actual Forest Service ownership layer,
-     * rather than a National Forest proclamation boundary.
-     *
-     * OWNERCLASSIFICATION:
-     *   USDA FOREST SERVICE
-     *   NON-FS
-     */
-
-    const forestServiceURL =
-
-      "https://apps.fs.usda.gov/arcx/rest/services/EDW/EDW_BasicOwnership_02/MapServer/0";
-
-
-    /* =====================================================
        CURRENT VEGETATION VARIABLES
        ===================================================== */
 
@@ -708,12 +720,43 @@
 
 
     /* =====================================================
+       LAND OWNERSHIP VARIABLES
+       ===================================================== */
+
+    let dnrLayer = null;
+
+    let forestServiceLayer = null;
+
+    let dnrVisible = false;
+
+    let forestServiceVisible = false;
+
+
+    /* =====================================================
        MICHIGAN MNFI CIRCA-1800 SERVICE
        ===================================================== */
 
     const michiganURL =
 
       "https://gisp.mcgi.state.mi.us/arcgis/rest/services/EGLE/LandCoverType_1800/FeatureServer/0";
+
+
+    /* =====================================================
+       MICHIGAN DNR PARCEL SERVICE
+       ===================================================== */
+
+    const dnrParcelsURL =
+
+      "https://services3.arcgis.com/Jdnp1TjADvSDxMAX/ArcGIS/rest/services/DNRLOTSParcelsOPENDATA/FeatureServer/0";
+
+
+    /* =====================================================
+       US FOREST SERVICE SERVICE
+       ===================================================== */
+
+    const forestServiceURL =
+
+      "https://services.arcgis.com/P3ePLMYs2RVChkJx/ArcGIS/rest/services/USA_Federal_Lands/FeatureServer/0";
 
 
     /* =====================================================
@@ -943,9 +986,12 @@
         westLat +
 
         fraction *
+
         (
+
           eastLat -
           westLat
+
         )
 
       );
@@ -1675,87 +1721,38 @@
           communities: [
 
             {
-
-              name:
-                "Dry Sand Prairie",
-
-              url:
-                mnfiCommunityURLs[
-                  "dry sand prairie"
-                ]
-
+              name: "Dry Sand Prairie",
+              url: mnfiCommunityURLs["dry sand prairie"]
             },
 
             {
-
-              name:
-                "Dry-mesic Prairie",
-
-              url:
-                mnfiCommunityURLs[
-                  "dry-mesic prairie"
-                ]
-
+              name: "Dry-mesic Prairie",
+              url: mnfiCommunityURLs["dry-mesic prairie"]
             },
 
             {
-
-              name:
-                "Mesic Prairie",
-
-              url:
-                mnfiCommunityURLs[
-                  "mesic prairie"
-                ]
-
+              name: "Mesic Prairie",
+              url: mnfiCommunityURLs["mesic prairie"]
             },
 
             {
-
-              name:
-                "Mesic Sand Prairie",
-
-              url:
-                mnfiCommunityURLs[
-                  "mesic sand prairie"
-                ]
-
+              name: "Mesic Sand Prairie",
+              url: mnfiCommunityURLs["mesic sand prairie"]
             },
 
             {
-
-              name:
-                "Wet Prairie",
-
-              url:
-                mnfiCommunityURLs[
-                  "wet prairie"
-                ]
-
+              name: "Wet Prairie",
+              url: mnfiCommunityURLs["wet prairie"]
             },
 
             {
-
-              name:
-                "Wet-mesic Prairie",
-
-              url:
-                mnfiCommunityURLs[
-                  "wet-mesic prairie"
-                ]
-
+              name: "Wet-mesic Prairie",
+              url: mnfiCommunityURLs["wet-mesic prairie"]
             },
 
             {
-
-              name:
-                "Wet-mesic Sand Prairie",
-
-              url:
-                mnfiCommunityURLs[
-                  "wet-mesic sand prairie"
-                ]
-
+              name: "Wet-mesic Sand Prairie",
+              url: mnfiCommunityURLs["wet-mesic sand prairie"]
             }
 
           ],
@@ -1778,63 +1775,28 @@
           communities: [
 
             {
-
-              name:
-                "Emergent Marsh",
-
-              url:
-                mnfiCommunityURLs[
-                  "emergent marsh"
-                ]
-
+              name: "Emergent Marsh",
+              url: mnfiCommunityURLs["emergent marsh"]
             },
 
             {
-
-              name:
-                "Northern Shrub Thicket",
-
-              url:
-                mnfiCommunityURLs[
-                  "northern shrub thicket"
-                ]
-
+              name: "Northern Shrub Thicket",
+              url: mnfiCommunityURLs["northern shrub thicket"]
             },
 
             {
-
-              name:
-                "Southern Shrub-carr",
-
-              url:
-                mnfiCommunityURLs[
-                  "southern shrub-carr"
-                ]
-
+              name: "Southern Shrub-carr",
+              url: mnfiCommunityURLs["southern shrub-carr"]
             },
 
             {
-
-              name:
-                "Northern Wet Meadow",
-
-              url:
-                mnfiCommunityURLs[
-                  "northern wet meadow"
-                ]
-
+              name: "Northern Wet Meadow",
+              url: mnfiCommunityURLs["northern wet meadow"]
             },
 
             {
-
-              name:
-                "Southern Wet Meadow",
-
-              url:
-                mnfiCommunityURLs[
-                  "southern wet meadow"
-                ]
-
+              name: "Southern Wet Meadow",
+              url: mnfiCommunityURLs["southern wet meadow"]
             }
 
           ],
@@ -1857,27 +1819,13 @@
           communities: [
 
             {
-
-              name:
-                "Open Dunes",
-
-              url:
-                mnfiCommunityURLs[
-                  "open dunes"
-                ]
-
+              name: "Open Dunes",
+              url: mnfiCommunityURLs["open dunes"]
             },
 
             {
-
-              name:
-                "Wooded Dune and Swale Complex",
-
-              url:
-                mnfiCommunityURLs[
-                  "wooded dune and swale complex"
-                ]
-
+              name: "Wooded Dune and Swale Complex",
+              url: mnfiCommunityURLs["wooded dune and swale complex"]
             }
 
           ],
@@ -1935,13 +1883,10 @@
         html +=
 
           '<a class="mnfi-link" ' +
-
           'href="' +
           community.url +
           '" ' +
-
           'target="_blank" ' +
-
           'rel="noopener noreferrer">' +
 
           "View MNFI: " +
@@ -1975,13 +1920,10 @@
             html +=
 
               '<a class="mnfi-link" ' +
-
               'href="' +
               item.url +
               '" ' +
-
               'target="_blank" ' +
-
               'rel="noopener noreferrer">' +
 
               "View MNFI: " +
@@ -2037,7 +1979,6 @@
           "<strong>" +
 
           sideText +
-
           " the approximate floristic tension zone</strong> " +
 
           "using the current straight-line approximation." +
@@ -2351,15 +2292,6 @@
 
                 }
 
-
-                if (
-                  forestServiceVisible
-                ) {
-
-                  loadForestService();
-
-                }
-
               }
 
               else if (
@@ -2625,594 +2557,6 @@
 
 
     /* =====================================================
-       FOREST SERVICE TOGGLE
-       ===================================================== */
-
-    function toggleForestService() {
-
-      forestServiceVisible =
-        !forestServiceVisible;
-
-
-      const button =
-        document.getElementById(
-          "forestServiceButton"
-        );
-
-
-      if (!forestServiceVisible) {
-
-        button.innerHTML =
-          "USFS LAND OFF";
-
-        button.classList.remove(
-          "active"
-        );
-
-
-        if (forestServiceLayer) {
-
-          map.removeLayer(
-            forestServiceLayer
-          );
-
-        }
-
-
-        if (gpsDetailsVisible) {
-
-          displayGPSDetails();
-
-        }
-
-        else {
-
-          setStatus("");
-
-        }
-
-
-        return;
-
-      }
-
-
-      button.innerHTML =
-        "USFS LAND ON";
-
-      button.classList.add(
-        "active"
-      );
-
-
-      setStatus(
-        "Loading Forest Service ownership..."
-      );
-
-
-      lastForestServiceCenter =
-        null;
-
-
-      loadForestService();
-
-    }
-
-
-    /* =====================================================
-       LOAD FOREST SERVICE OWNERSHIP
-       ===================================================== */
-
-    async function loadForestService() {
-
-      /*
-       * Forest Service ownership is useful at a somewhat
-       * broader scale than the detailed GLO polygons.
-       */
-
-      if (map.getZoom() < 8) {
-
-        setStatus(
-
-          "Zoom in closer to view Forest Service ownership."
-
-        );
-
-        return;
-
-      }
-
-
-      const center =
-        map.getCenter();
-
-
-      if (lastForestServiceCenter) {
-
-        const movedDistance =
-
-          map.distance(
-
-            lastForestServiceCenter,
-            center
-
-          );
-
-
-        if (
-          movedDistance < 1000
-        ) {
-
-          return;
-
-        }
-
-      }
-
-
-      lastForestServiceCenter =
-        center;
-
-
-      const bounds =
-        map.getBounds();
-
-
-      const west =
-        bounds.getWest();
-
-      const south =
-        bounds.getSouth();
-
-      const east =
-        bounds.getEast();
-
-      const north =
-        bounds.getNorth();
-
-
-      const geometry =
-
-        JSON.stringify({
-
-          xmin:
-            west,
-
-          ymin:
-            south,
-
-          xmax:
-            east,
-
-          ymax:
-            north,
-
-          spatialReference: {
-
-            wkid:
-              4326
-
-          }
-
-        });
-
-
-      const params =
-
-        new URLSearchParams({
-
-          where:
-            "OWNERCLASSIFICATION = 'USDA FOREST SERVICE'",
-
-          geometry:
-            geometry,
-
-          geometryType:
-            "esriGeometryEnvelope",
-
-          inSR:
-            "4326",
-
-          spatialRel:
-            "esriSpatialRelIntersects",
-
-          outFields:
-            "OWNERCLASSIFICATION,FORESTNAME,REGION",
-
-          returnGeometry:
-            "true",
-
-          outSR:
-            "4326",
-
-          f:
-            "geojson"
-
-        });
-
-
-      try {
-
-        const response =
-
-          await fetch(
-
-            forestServiceURL +
-            "/query?" +
-            params.toString()
-
-          );
-
-
-        if (!response.ok) {
-
-          throw new Error(
-
-            "Forest Service server returned HTTP " +
-            response.status
-
-          );
-
-        }
-
-
-        const data =
-          await response.json();
-
-
-        if (data.error) {
-
-          throw new Error(
-
-            data.error.message ||
-            "Forest Service ArcGIS returned an error."
-
-          );
-
-        }
-
-
-        if (
-          !data.features ||
-          data.features.length === 0
-        ) {
-
-          if (forestServiceLayer) {
-
-            map.removeLayer(
-              forestServiceLayer
-            );
-
-          }
-
-
-          setStatus(
-
-            "No Forest Service-owned land was found in the current map area."
-
-          );
-
-          return;
-
-        }
-
-
-        /*
-         * REMOVE OLD FOREST SERVICE LAYER
-         */
-
-        if (forestServiceLayer) {
-
-          map.removeLayer(
-            forestServiceLayer
-          );
-
-        }
-
-
-        /*
-         * CREATE FOREST SERVICE LAYER
-         *
-         * 50% opacity so the OpenStreetMap basemap
-         * and MNFI vegetation can remain visible.
-         */
-
-        forestServiceLayer =
-
-          L.geoJSON(
-
-            data,
-
-            {
-
-              style:
-
-                function() {
-
-                  return {
-
-                    color:
-                      "#174a8b",
-
-                    weight:
-                      1.2,
-
-                    opacity:
-                      0.9,
-
-                    fillColor:
-                      "#3182bd",
-
-                    fillOpacity:
-                      0.50
-
-                  };
-
-                },
-
-
-              onEachFeature:
-
-                function(
-                  feature,
-                  layer
-                ) {
-
-                  const p =
-                    feature.properties;
-
-
-                  const forestName =
-
-                    p.FORESTNAME ||
-                    "Forest Service land";
-
-
-                  const region =
-
-                    p.REGION ||
-                    "Unknown";
-
-
-                  let popup =
-
-                    "<strong>" +
-
-                    "U.S. Forest Service Land" +
-
-                    "</strong>" +
-
-                    "<br><br>" +
-
-                    "<strong>Forest:</strong><br>" +
-
-                    forestName +
-
-                    "<br><br>" +
-
-                    "<strong>Forest Service Region:</strong> " +
-
-                    region;
-
-
-                  popup +=
-
-                    '<div class="mnfi-note">' +
-
-                    "This layer represents Forest Service surface ownership. " +
-
-                    "It is intended for general mapping and analysis and is not a legal determination of property ownership or boundary." +
-
-                    "</div>";
-
-
-                  layer.bindPopup(
-
-                    popup,
-
-                    {
-
-                      closeButton:
-                        true,
-
-                      autoPan:
-                        true,
-
-                      autoPanPadding:
-                        [30, 30]
-
-                    }
-
-                  );
-
-
-                  layer.on(
-
-                    "click",
-
-                    function(e) {
-
-                      pauseGPSAutoCentering();
-
-
-                      if (
-                        e.originalEvent
-                      ) {
-
-                        L.DomEvent.stopPropagation(
-                          e.originalEvent
-                        );
-
-                      }
-
-
-                      layer.openPopup();
-
-                    }
-
-                  );
-
-
-                  layer.on(
-
-                    "touchstart",
-
-                    function() {
-
-                      pauseGPSAutoCentering();
-
-                    }
-
-                  );
-
-
-                  layer.on(
-
-                    "mouseover",
-
-                    function(e) {
-
-                      e.target.setStyle({
-
-                        weight:
-                          2.5,
-
-                        color:
-                          "#0d3568",
-
-                        fillOpacity:
-                          0.65
-
-                      });
-
-                    }
-
-                  );
-
-
-                  layer.on(
-
-                    "mouseout",
-
-                    function(e) {
-
-                      if (
-                        forestServiceLayer
-                      ) {
-
-                        forestServiceLayer.resetStyle(
-                          e.target
-                        );
-
-                      }
-
-                    }
-
-                  );
-
-
-                  layer.on(
-
-                    "popupopen",
-
-                    function() {
-
-                      popupIsOpen =
-                        true;
-
-
-                      pauseGPSAutoCentering();
-
-                    }
-
-                  );
-
-
-                  layer.on(
-
-                    "popupclose",
-
-                    function() {
-
-                      popupIsOpen =
-                        false;
-
-                    }
-
-                  );
-
-                }
-
-            }
-
-          );
-
-
-        /*
-         * IMPORTANT:
-         *
-         * Forest Service layer is added first.
-         * MNFI vegetation is subsequently brought to
-         * the front whenever it exists.
-         */
-
-        forestServiceLayer.addTo(
-          map
-        );
-
-
-        if (vegetationLayer) {
-
-          vegetationLayer.bringToFront();
-
-        }
-
-
-        if (gpsMarker) {
-
-          gpsMarker.bringToFront();
-
-        }
-
-
-        if (gpsDetailsVisible) {
-
-          displayGPSDetails();
-
-        }
-
-        else {
-
-          setStatus("");
-
-        }
-
-      }
-
-
-      catch(error) {
-
-        console.error(
-
-          "Forest Service loading error:",
-          error
-
-        );
-
-
-        setStatus(
-
-          "Forest Service error:<br>" +
-          error.message
-
-        );
-
-      }
-
-    }
-
-
-    /* =====================================================
        LOAD VEGETATION
        ===================================================== */
 
@@ -3288,34 +2632,21 @@
         map.getBounds();
 
 
-      const west =
-        bounds.getWest();
-
-      const south =
-        bounds.getSouth();
-
-      const east =
-        bounds.getEast();
-
-      const north =
-        bounds.getNorth();
-
-
       const geometry =
 
         JSON.stringify({
 
           xmin:
-            west,
+            bounds.getWest(),
 
           ymin:
-            south,
+            bounds.getSouth(),
 
           xmax:
-            east,
+            bounds.getEast(),
 
           ymax:
-            north,
+            bounds.getNorth(),
 
           spatialReference: {
 
@@ -3528,9 +2859,7 @@
                   let popup =
 
                     "<strong>" +
-
                     "Michigan Circa-1800 Vegetation" +
-
                     "</strong>" +
 
                     "<br><br>" +
@@ -3544,10 +2873,8 @@
                     "<strong>Vegetation code:</strong> " +
 
                     (
-
                       p.VEGCODE ||
                       "Unknown"
-
                     ) +
 
                     "<br><br>" +
@@ -3555,10 +2882,8 @@
                     "<strong>County:</strong> " +
 
                     (
-
                       p.CNTY_NAME ||
                       "Unknown"
-
                     );
 
 
@@ -3641,7 +2966,7 @@
                           "#000000",
 
                         fillOpacity:
-                          0.65
+                          0.70
 
                       });
 
@@ -3680,7 +3005,6 @@
                       popupIsOpen =
                         true;
 
-
                       pauseGPSAutoCentering();
 
                     }
@@ -3713,21 +3037,6 @@
         );
 
 
-        /*
-         * Always keep the historical vegetation
-         * above Forest Service ownership.
-         */
-
-        vegetationLayer.bringToFront();
-
-
-        if (gpsMarker) {
-
-          gpsMarker.bringToFront();
-
-        }
-
-
         if (gpsDetailsVisible) {
 
           displayGPSDetails();
@@ -3758,6 +3067,629 @@
           "Vegetation error:<br>" +
           error.message
 
+        );
+
+      }
+
+    }
+
+
+    /* =====================================================
+       LOAD DNR PARCELS
+       ===================================================== */
+
+    async function loadDNRParcels() {
+
+      if (map.getZoom() < 10) {
+
+        return;
+
+      }
+
+
+      const bounds =
+        map.getBounds();
+
+
+      const geometry =
+
+        JSON.stringify({
+
+          xmin:
+            bounds.getWest(),
+
+          ymin:
+            bounds.getSouth(),
+
+          xmax:
+            bounds.getEast(),
+
+          ymax:
+            bounds.getNorth(),
+
+          spatialReference: {
+
+            wkid:
+              4326
+
+          }
+
+        });
+
+
+      const params =
+
+        new URLSearchParams({
+
+          where:
+            "1=1",
+
+          geometry:
+            geometry,
+
+          geometryType:
+            "esriGeometryEnvelope",
+
+          inSR:
+            "4326",
+
+          spatialRel:
+            "esriSpatialRelIntersects",
+
+          outFields:
+            "County,ParcelType,DivisionDepartment,Acreage,ParID",
+
+          returnGeometry:
+            "true",
+
+          outSR:
+            "4326",
+
+          f:
+            "geojson",
+
+          resultRecordCount:
+            "1000"
+
+        });
+
+
+      try {
+
+        const response =
+
+          await fetch(
+
+            dnrParcelsURL +
+            "/query?" +
+            params.toString()
+
+          );
+
+
+        if (!response.ok) {
+
+          throw new Error(
+            "DNR parcel server returned HTTP " +
+            response.status
+          );
+
+        }
+
+
+        const data =
+          await response.json();
+
+
+        if (data.error) {
+
+          throw new Error(
+            data.error.message ||
+            "DNR parcel service returned an error."
+          );
+
+        }
+
+
+        if (dnrLayer) {
+
+          map.removeLayer(
+            dnrLayer
+          );
+
+        }
+
+
+        dnrLayer =
+
+          L.geoJSON(
+
+            data,
+
+            {
+
+              style: {
+
+                color:
+                  "#176b2c",
+
+                weight:
+                  0.8,
+
+                fillColor:
+                  "#39a852",
+
+                fillOpacity:
+                  0.28
+
+              },
+
+
+              onEachFeature:
+
+                function(
+                  feature,
+                  layer
+                ) {
+
+                  const p =
+                    feature.properties ||
+                    {};
+
+
+                  const acreage =
+                    p.Acreage != null
+                      ? Number(p.Acreage).toFixed(1)
+                      : "Unknown";
+
+
+                  const county =
+                    p.County ||
+                    "Unknown";
+
+
+                  const division =
+                    p.DivisionDepartment ||
+                    "Michigan DNR";
+
+
+                  layer.bindPopup(
+
+                    "<strong>Michigan DNR Parcel</strong>" +
+
+                    "<br><br>" +
+
+                    "<strong>County:</strong> " +
+                    county +
+
+                    "<br>" +
+
+                    "<strong>DNR division:</strong> " +
+                    division +
+
+                    "<br>" +
+
+                    "<strong>Acres:</strong> " +
+                    acreage
+
+                  );
+
+
+                  layer.on(
+
+                    "click",
+
+                    function(e) {
+
+                      pauseGPSAutoCentering();
+
+
+                      if (
+                        e.originalEvent
+                      ) {
+
+                        L.DomEvent.stopPropagation(
+                          e.originalEvent
+                        );
+
+                      }
+
+                    }
+
+                  );
+
+
+                  layer.on(
+
+                    "mouseover",
+
+                    function(e) {
+
+                      e.target.setStyle({
+
+                        weight:
+                          2,
+
+                        color:
+                          "#0d4d20",
+
+                        fillOpacity:
+                          0.42
+
+                      });
+
+                    }
+
+                  );
+
+
+                  layer.on(
+
+                    "mouseout",
+
+                    function(e) {
+
+                      if (dnrLayer) {
+
+                        dnrLayer.resetStyle(
+                          e.target
+                        );
+
+                      }
+
+                    }
+
+                  );
+
+                }
+
+            }
+
+          );
+
+
+        if (dnrVisible) {
+
+          dnrLayer.addTo(
+            map
+          );
+
+        }
+
+      }
+
+
+      catch(error) {
+
+        console.error(
+          "DNR parcel loading error:",
+          error
+        );
+
+      }
+
+    }
+
+
+    /* =====================================================
+       LOAD US FOREST SERVICE LANDS
+       ===================================================== */
+
+    async function loadForestServiceLands() {
+
+      const bounds =
+        map.getBounds();
+
+
+      const geometry =
+
+        JSON.stringify({
+
+          xmin:
+            bounds.getWest(),
+
+          ymin:
+            bounds.getSouth(),
+
+          xmax:
+            bounds.getEast(),
+
+          ymax:
+            bounds.getNorth(),
+
+          spatialReference: {
+
+            wkid:
+              4326
+
+          }
+
+        });
+
+
+      const params =
+
+        new URLSearchParams({
+
+          where:
+            "Agency = 'Forest Service'",
+
+          geometry:
+            geometry,
+
+          geometryType:
+            "esriGeometryEnvelope",
+
+          inSR:
+            "4326",
+
+          spatialRel:
+            "esriSpatialRelIntersects",
+
+          outFields:
+            "Agency,unit_name,link",
+
+          returnGeometry:
+            "true",
+
+          outSR:
+            "4326",
+
+          f:
+            "geojson",
+
+          resultRecordCount:
+            "2000"
+
+        });
+
+
+      try {
+
+        const response =
+
+          await fetch(
+
+            forestServiceURL +
+            "/query?" +
+            params.toString()
+
+          );
+
+
+        if (!response.ok) {
+
+          throw new Error(
+
+            "Forest Service server returned HTTP " +
+            response.status
+
+          );
+
+        }
+
+
+        const data =
+          await response.json();
+
+
+        if (data.error) {
+
+          throw new Error(
+
+            data.error.message ||
+            "Forest Service service returned an error."
+
+          );
+
+        }
+
+
+        if (forestServiceLayer) {
+
+          map.removeLayer(
+            forestServiceLayer
+          );
+
+        }
+
+
+        forestServiceLayer =
+
+          L.geoJSON(
+
+            data,
+
+            {
+
+              style: {
+
+                color:
+                  "#174f9c",
+
+                weight:
+                  1,
+
+                fillColor:
+                  "#3388cc",
+
+                fillOpacity:
+                  0.28
+
+              },
+
+
+              onEachFeature:
+
+                function(
+                  feature,
+                  layer
+                ) {
+
+                  const p =
+                    feature.properties ||
+                    {};
+
+
+                  layer.bindPopup(
+
+                    "<strong>U.S. Forest Service Land</strong>" +
+
+                    "<br><br>" +
+
+                    "<strong>National Forest / Unit:</strong><br>" +
+
+                    (
+                      p.unit_name ||
+                      "Unknown"
+                    )
+
+                  );
+
+
+                  layer.on(
+
+                    "click",
+
+                    function(e) {
+
+                      pauseGPSAutoCentering();
+
+
+                      if (
+                        e.originalEvent
+                      ) {
+
+                        L.DomEvent.stopPropagation(
+                          e.originalEvent
+                        );
+
+                      }
+
+                    }
+
+                  );
+
+
+                  layer.on(
+
+                    "mouseover",
+
+                    function(e) {
+
+                      e.target.setStyle({
+
+                        weight:
+                          2,
+
+                        color:
+                          "#0c3775",
+
+                        fillOpacity:
+                          0.42
+
+                      });
+
+                    }
+
+                  );
+
+
+                  layer.on(
+
+                    "mouseout",
+
+                    function(e) {
+
+                      if (
+                        forestServiceLayer
+                      ) {
+
+                        forestServiceLayer.resetStyle(
+                          e.target
+                        );
+
+                      }
+
+                    }
+
+                  );
+
+                }
+
+            }
+
+          );
+
+
+        if (forestServiceVisible) {
+
+          forestServiceLayer.addTo(
+            map
+          );
+
+        }
+
+      }
+
+
+      catch(error) {
+
+        console.error(
+
+          "Forest Service loading error:",
+          error
+
+        );
+
+      }
+
+    }
+
+
+    /* =====================================================
+       LAND OWNERSHIP TOGGLES
+       ===================================================== */
+
+    function toggleDNRLayer() {
+
+      dnrVisible =
+        !dnrVisible;
+
+
+      if (dnrVisible) {
+
+        loadDNRParcels();
+
+      }
+
+      else if (dnrLayer) {
+
+        map.removeLayer(
+          dnrLayer
+        );
+
+      }
+
+    }
+
+
+    function toggleForestServiceLayer() {
+
+      forestServiceVisible =
+        !forestServiceVisible;
+
+
+      if (forestServiceVisible) {
+
+        loadForestServiceLands();
+
+      }
+
+      else if (forestServiceLayer) {
+
+        map.removeLayer(
+          forestServiceLayer
         );
 
       }
@@ -4281,15 +4213,6 @@
           : "";
 
 
-      /*
-       * These are the MNFI viewer color values recovered
-       * from the map's underlying configuration.
-       *
-       * IMPORTANT:
-       * The colors below are the actual cover-type
-       * assignments, rather than an interpolated palette.
-       */
-
       const colors = {
 
         "ASPEN-BIRCH FOREST":
@@ -4399,66 +4322,18 @@
 
 
     /* =====================================================
-       MAP MOVE / VEGETATION + USFS RELOAD
+       MAP MOVE / VEGETATION + LAND RELOAD
        ===================================================== */
+
+    let reloadTimer =
+      null;
+
 
     map.on(
 
       "moveend",
 
       function() {
-
-        /*
-         * FOREST SERVICE
-         */
-
-        if (
-          forestServiceVisible
-        ) {
-
-          clearTimeout(
-            forestServiceReloadTimer
-          );
-
-
-          forestServiceReloadTimer =
-
-            setTimeout(
-
-              function() {
-
-                if (!popupIsOpen) {
-
-                  loadForestService();
-
-                }
-
-              },
-
-              750
-
-            );
-
-        }
-
-
-        /*
-         * HISTORICAL VEGETATION
-         */
-
-        if (!vegetationVisible) {
-
-          return;
-
-        }
-
-
-        if (popupIsOpen) {
-
-          return;
-
-        }
-
 
         clearTimeout(
           reloadTimer
@@ -4471,14 +4346,37 @@
 
             function() {
 
-              if (popupIsOpen) {
+              if (
+                !popupIsOpen
+              ) {
 
-                return;
+                if (
+                  vegetationVisible
+                ) {
+
+                  loadVegetation();
+
+                }
+
+
+                if (
+                  dnrVisible
+                ) {
+
+                  loadDNRParcels();
+
+                }
+
+
+                if (
+                  forestServiceVisible
+                ) {
+
+                  loadForestServiceLands();
+
+                }
 
               }
-
-
-              loadVegetation();
 
             },
 
@@ -4489,14 +4387,6 @@
       }
 
     );
-
-
-    /* =====================================================
-       VEGETATION RELOAD TIMER
-       ===================================================== */
-
-    let reloadTimer =
-      null;
 
 
     /* =====================================================
@@ -4546,6 +4436,196 @@
 
     );
 
+
+    /* =====================================================
+       LAYER CONTROL
+       ===================================================== */
+
+    /*
+     * Thematic overlays are deliberately separate from the
+     * main controls. This keeps the upper-left interface
+     * compact while allowing the user to combine:
+     *
+     *   GLO 1800s
+     *   Michigan DNR parcels
+     *   US Forest Service lands
+     *
+     * independently.
+     */
+
+    const overlayMaps = {
+
+      "DNR Parcels": dnrLayer,
+
+      "US Forest Service Lands": forestServiceLayer
+
+    };
+
+
+    /*
+     * Leaflet needs the actual layer objects when the control
+     * is created. Because the DNR and Forest Service layers
+     * are loaded dynamically, use a custom control instead.
+     */
+
+    const layerControl =
+      L.control.layers(
+
+        null,
+
+        null,
+
+        {
+
+          collapsed:
+            true,
+
+          position:
+            "topright"
+
+        }
+
+      ).addTo(map);
+
+
+    /*
+     * Add placeholder LayerGroups so the control has stable
+     * toggleable entries.
+     */
+
+    const dnrControlLayer =
+      L.layerGroup();
+
+    const forestControlLayer =
+      L.layerGroup();
+
+
+    layerControl.addOverlay(
+
+      dnrControlLayer,
+
+      "DNR Parcels"
+
+    );
+
+
+    layerControl.addOverlay(
+
+      forestControlLayer,
+
+      "US Forest Service Lands"
+
+    );
+
+
+    /*
+     * Keep the real dynamically-loaded layers synchronized
+     * with the Layer Control.
+     */
+
+    map.on(
+
+      "overlayadd",
+
+      function(e) {
+
+        if (
+          e.layer ===
+          dnrControlLayer
+        ) {
+
+          dnrVisible =
+            true;
+
+          loadDNRParcels();
+
+        }
+
+
+        if (
+          e.layer ===
+          forestControlLayer
+        ) {
+
+          forestServiceVisible =
+            true;
+
+          loadForestServiceLands();
+
+        }
+
+      }
+
+    );
+
+
+    map.on(
+
+      "overlayremove",
+
+      function(e) {
+
+        if (
+          e.layer ===
+          dnrControlLayer
+        ) {
+
+          dnrVisible =
+            false;
+
+
+          if (dnrLayer) {
+
+            map.removeLayer(
+              dnrLayer
+            );
+
+          }
+
+        }
+
+
+        if (
+          e.layer ===
+          forestControlLayer
+        ) {
+
+          forestServiceVisible =
+            false;
+
+
+          if (forestServiceLayer) {
+
+            map.removeLayer(
+              forestServiceLayer
+            );
+
+          }
+
+        }
+
+      }
+
+    );
+
+
+    /*
+     * When the real layers load, place them on the map while
+     * keeping the placeholder layer in the Layer Control.
+     */
+
+    const originalLoadDNRParcels =
+      loadDNRParcels;
+
+
+    const originalLoadForestServiceLands =
+      loadForestServiceLands;
+
+
+    /*
+     * The functions above are already responsible for adding
+     * the real layers when their visibility flags are true.
+     */
 
   </script>
 
