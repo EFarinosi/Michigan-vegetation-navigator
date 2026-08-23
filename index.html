@@ -141,7 +141,7 @@
 
 
     /*
-     * Active buttons are now identified by a highlighted
+     * Active buttons are identified by a highlighted
      * border rather than changing their text to "ON".
      */
 
@@ -400,6 +400,77 @@
 
 
     /* =====================================================
+       HISTORIC SURVEY MATERIAL
+       ===================================================== */
+
+    .historic-survey-section {
+
+      margin-top: 10px;
+
+      padding-top: 8px;
+
+      border-top: 1px solid #ddd;
+
+    }
+
+
+    .historic-survey-title {
+
+      font-size: 11px;
+
+      font-weight: bold;
+
+      color: #555;
+
+      margin-bottom: 5px;
+
+    }
+
+
+    .historic-survey-description {
+
+      font-size: 11px;
+
+      line-height: 1.35;
+
+      color: #444;
+
+    }
+
+
+    .historic-survey-link {
+
+      display: block;
+
+      width: fit-content;
+
+      margin-top: 7px;
+
+      padding: 6px 9px;
+
+      border-radius: 5px;
+
+      background: #6b4f2a;
+
+      color: white !important;
+
+      text-decoration: none;
+
+      font-weight: bold;
+
+      font-size: 11px;
+
+    }
+
+
+    .historic-survey-link:hover {
+
+      background: #513a1f;
+
+    }
+
+
+    /* =====================================================
        SMALL SCREENS
        ===================================================== */
 
@@ -485,6 +556,15 @@
       .mnfi-link {
 
         font-size: 11px;
+
+        padding: 5px 8px;
+
+      }
+
+
+      .historic-survey-link {
+
+        font-size: 10px;
 
         padding: 5px 8px;
 
@@ -818,6 +898,29 @@
     const cornersURL =
 
       "https://gisagocss.state.mi.us/arcgis/rest/services/OpenData/Public_Land_Survey_Corners_and_Remonumentations/MapServer/0";
+
+
+    /* =====================================================
+       HISTORIC GLO SURVEY MAPS
+       ===================================================== */
+
+    /*
+     * Original survey map for T12N R12W / Brooks Township.
+     *
+     * The archival record identifies this as:
+     *
+     * "12N 12W - Survey Map of Brooks Township,
+     *  Newaygo County, Page 1"
+     *
+     * Township lines were measured in 1837.
+     * Subdivision lines were measured in 1838.
+     *
+     * Archives of Michigan / Michigan Digital Archives
+     */
+
+    const brooksTownshipSurveyMapURL =
+
+      "https://michigan.access.preservica.com/uncategorized/IO_7dcabf59-b0e8-40f8-8fe7-bc510527e133";
 
 
     /* =====================================================
@@ -3649,6 +3752,97 @@
                     "<strong>PS ID:</strong> " +
 
                     psID;
+
+
+                  /*
+                   * =================================================
+                   * HISTORIC BROOKS TOWNSHIP SURVEY MAP
+                   * =================================================
+                   *
+                   * Provide the original 1837/1838 Brooks Township
+                   * survey map when the corner belongs to T12N R12W.
+                   *
+                   * The GLO corner layer's township/range fields are
+                   * handled as text because their exact formatting
+                   * can vary between records.
+                   */
+
+                  const townshipText =
+
+                    String(township)
+                      .trim()
+                      .toUpperCase();
+
+
+                  const rangeText =
+
+                    String(range)
+                      .trim()
+                      .toUpperCase();
+
+
+                  const isBrooksTownship =
+
+                    (
+
+                      townshipText.includes("12N") ||
+
+                      townshipText === "12"
+
+                    ) &&
+
+                    (
+
+                      rangeText.includes("12W") ||
+
+                      rangeText === "12"
+
+                    );
+
+
+                  if (isBrooksTownship) {
+
+                    popup +=
+
+                      '<div class="historic-survey-section">' +
+
+                        '<div class="historic-survey-title">' +
+
+                          "Historic survey material" +
+
+                        "</div>" +
+
+                        '<div class="historic-survey-description">' +
+
+                          "<strong>1837–1838 Original Brooks Township Survey Map</strong>" +
+
+                          "<br>" +
+
+                          "Township lines were surveyed in 1837; " +
+
+                          "subdivision lines were surveyed in 1838." +
+
+                        "</div>" +
+
+                        '<a class="historic-survey-link" ' +
+
+                          'href="' +
+
+                          brooksTownshipSurveyMapURL +
+
+                          '" ' +
+
+                          'target="_blank" ' +
+
+                          'rel="noopener noreferrer">' +
+
+                          "View original survey map →" +
+
+                        "</a>" +
+
+                      "</div>";
+
+                  }
 
 
                   if (
