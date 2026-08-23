@@ -79,6 +79,32 @@
 
 
     /* =====================================================
+       BUTTON ROWS
+       ===================================================== */
+
+    .control-row {
+
+      display: flex;
+
+      flex-wrap: wrap;
+
+      align-items: center;
+
+      margin: 0;
+
+      padding: 0;
+
+    }
+
+
+    .control-row + .control-row {
+
+      margin-top: 2px;
+
+    }
+
+
+    /* =====================================================
        BUTTONS
        ===================================================== */
 
@@ -126,23 +152,23 @@
     }
 
 
+    #currentButton.active {
+
+      background: #245c9c;
+
+    }
+
+
     #dnrButton.active {
 
-      background: #347a3c;
+      background: #438a3f;
 
     }
 
 
     #usfsButton.active {
 
-      background: #315f9c;
-
-    }
-
-
-    #currentButton.active {
-
-      background: #245c9c;
+      background: #3269a8;
 
     }
 
@@ -464,58 +490,76 @@
   <div id="controls">
 
 
-    <button
-      id="gpsButton"
-      onclick="toggleGPS()"
-    >
+    <!-- ===================================================
+         ROW 1
+         GPS / GLO / WHAT WAS HERE
+         =================================================== -->
 
-      GPS OFF
-
-    </button>
+    <div class="control-row">
 
 
-    <button
-      id="vegetationButton"
-      onclick="toggleVegetation()"
-    >
+      <button
+        id="gpsButton"
+        onclick="toggleGPS()"
+      >
 
-      GLO 1800s OFF
+        GPS OFF
 
-    </button>
-
-
-    <!-- DNR PARCELS DIRECTLY BELOW GLO -->
-
-    <button
-      id="dnrButton"
-      onclick="toggleDNR()"
-    >
-
-      DNR Parcels OFF
-
-    </button>
+      </button>
 
 
-    <button
-      id="currentButton"
-      onclick="toggleCurrentVegetation()"
-    >
+      <button
+        id="vegetationButton"
+        onclick="toggleVegetation()"
+      >
 
-      What Was Here?
+        GLO 1800s OFF
 
-    </button>
+      </button>
 
 
-    <!-- USFS PARCELS DIRECTLY BELOW WHAT WAS HERE -->
+      <button
+        id="currentButton"
+        onclick="toggleCurrentVegetation()"
+      >
 
-    <button
-      id="usfsButton"
-      onclick="toggleUSFS()"
-    >
+        What Was Here?
 
-      USFS Parcels OFF
+      </button>
 
-    </button>
+
+    </div>
+
+
+    <!-- ===================================================
+         ROW 2
+         DNR / USFS
+         =================================================== -->
+
+    <div class="control-row">
+
+
+      <button
+        id="dnrButton"
+        onclick="toggleDNR()"
+      >
+
+        DNR Parcels OFF
+
+      </button>
+
+
+      <button
+        id="usfsButton"
+        onclick="toggleUSFS()"
+      >
+
+        USFS Parcels OFF
+
+      </button>
+
+
+    </div>
 
 
     <button
@@ -656,6 +700,12 @@
     const gpsCenterInterval = 500;
 
 
+    /*
+     * GPS following is temporarily suspended when the
+     * user interacts with a polygon or manually moves
+     * the map.
+     */
+
     let userInteractingWithMap = false;
 
     let popupInteractionTimer = null;
@@ -673,53 +723,31 @@
 
     let lastVegetationCenter = null;
 
+
+    /*
+     * Prevent vegetation from being reloaded when a
+     * popup's automatic panning causes a map move.
+     */
+
     let popupIsOpen = false;
 
 
     /* =====================================================
-       DNR PARCEL VARIABLES
+       PARCEL VARIABLES
        ===================================================== */
 
     let dnrLayer = null;
 
     let dnrVisible = false;
 
-    let lastDNRCenter = null;
+    let dnrLastCenter = null;
 
-
-    /*
-     * Michigan DNR Managed Lands.
-     *
-     * This is the DNR's current managed-land parcel layer.
-     * It is linked to DNR parcel geometry and updated weekly.
-     */
-
-    const dnrURL =
-
-      "https://services3.arcgis.com/Jdnp1TjADvSDxMAX/arcgis/rest/services/DNRLOTSParcelsOPENDATA/FeatureServer/2";
-
-
-    /* =====================================================
-       USFS PARCEL VARIABLES
-       ===================================================== */
 
     let usfsLayer = null;
 
     let usfsVisible = false;
 
-    let lastUSFSCenter = null;
-
-
-    /*
-     * USDA Forest Service Basic Ownership.
-     *
-     * Layer 0 contains the simplified Forest Service
-     * ownership polygons.
-     */
-
-    const usfsURL =
-
-      "https://apps.fs.usda.gov/arcx/rest/services/EDW/EDW_BasicOwnership_02/MapServer/0";
+    let usfsLastCenter = null;
 
 
     /* =====================================================
@@ -740,6 +768,24 @@
     const michiganURL =
 
       "https://gisp.mcgi.state.mi.us/arcgis/rest/services/EGLE/LandCoverType_1800/FeatureServer/0";
+
+
+    /* =====================================================
+       MICHIGAN DNR PARCEL SERVICE
+       ===================================================== */
+
+    const dnrURL =
+
+      "https://services3.arcgis.com/Jdnp1TjADvSDxMAX/arcgis/rest/services/DNRLOTSParcelsOPENDATA/FeatureServer/2";
+
+
+    /* =====================================================
+       US FOREST SERVICE BASIC OWNERSHIP SERVICE
+       ===================================================== */
+
+    const usfsURL =
+
+      "https://apps.fs.usda.gov/arcx/rest/services/EDW/EDW_BasicOwnership_01/MapServer/0";
 
 
     /* =====================================================
@@ -969,6 +1015,7 @@
         westLat +
 
         fraction *
+
         (
 
           eastLat -
@@ -1088,7 +1135,7 @@
 
 
     /* =====================================================
-       DETERMINE MNFI COMMUNITY
+       DETERMINE MNFI COMMUNITY / COMMUNITIES
        ===================================================== */
 
     function getMNFICommunity(
@@ -1703,6 +1750,7 @@
           communities: [
 
             {
+
               name:
                 "Dry Sand Prairie",
 
@@ -1710,9 +1758,11 @@
                 mnfiCommunityURLs[
                   "dry sand prairie"
                 ]
+
             },
 
             {
+
               name:
                 "Dry-mesic Prairie",
 
@@ -1720,9 +1770,11 @@
                 mnfiCommunityURLs[
                   "dry-mesic prairie"
                 ]
+
             },
 
             {
+
               name:
                 "Mesic Prairie",
 
@@ -1730,9 +1782,11 @@
                 mnfiCommunityURLs[
                   "mesic prairie"
                 ]
+
             },
 
             {
+
               name:
                 "Mesic Sand Prairie",
 
@@ -1740,9 +1794,11 @@
                 mnfiCommunityURLs[
                   "mesic sand prairie"
                 ]
+
             },
 
             {
+
               name:
                 "Wet Prairie",
 
@@ -1750,9 +1806,11 @@
                 mnfiCommunityURLs[
                   "wet prairie"
                 ]
+
             },
 
             {
+
               name:
                 "Wet-mesic Prairie",
 
@@ -1760,9 +1818,11 @@
                 mnfiCommunityURLs[
                   "wet-mesic prairie"
                 ]
+
             },
 
             {
+
               name:
                 "Wet-mesic Sand Prairie",
 
@@ -1770,6 +1830,7 @@
                 mnfiCommunityURLs[
                   "wet-mesic sand prairie"
                 ]
+
             }
 
           ],
@@ -1792,6 +1853,7 @@
           communities: [
 
             {
+
               name:
                 "Emergent Marsh",
 
@@ -1799,9 +1861,11 @@
                 mnfiCommunityURLs[
                   "emergent marsh"
                 ]
+
             },
 
             {
+
               name:
                 "Northern Shrub Thicket",
 
@@ -1809,9 +1873,11 @@
                 mnfiCommunityURLs[
                   "northern shrub thicket"
                 ]
+
             },
 
             {
+
               name:
                 "Southern Shrub-carr",
 
@@ -1819,9 +1885,11 @@
                 mnfiCommunityURLs[
                   "southern shrub-carr"
                 ]
+
             },
 
             {
+
               name:
                 "Northern Wet Meadow",
 
@@ -1829,9 +1897,11 @@
                 mnfiCommunityURLs[
                   "northern wet meadow"
                 ]
+
             },
 
             {
+
               name:
                 "Southern Wet Meadow",
 
@@ -1839,6 +1909,7 @@
                 mnfiCommunityURLs[
                   "southern wet meadow"
                 ]
+
             }
 
           ],
@@ -1861,6 +1932,7 @@
           communities: [
 
             {
+
               name:
                 "Open Dunes",
 
@@ -1868,9 +1940,11 @@
                 mnfiCommunityURLs[
                   "open dunes"
                 ]
+
             },
 
             {
+
               name:
                 "Wooded Dune and Swale Complex",
 
@@ -1878,6 +1952,7 @@
                 mnfiCommunityURLs[
                   "wooded dune and swale complex"
                 ]
+
             }
 
           ],
@@ -2117,12 +2192,6 @@
       lastVegetationCenter =
         null;
 
-      lastDNRCenter =
-        null;
-
-      lastUSFSCenter =
-        null;
-
       lastVegetationPosition =
         null;
 
@@ -2354,22 +2423,6 @@
                 ) {
 
                   loadVegetation();
-
-                }
-
-                if (
-                  dnrVisible
-                ) {
-
-                  loadDNR();
-
-                }
-
-                if (
-                  usfsVisible
-                ) {
-
-                  loadUSFS();
 
                 }
 
@@ -2867,20 +2920,19 @@
                   return {
 
                     color:
-                      "#666666",
+                      "#777777",
 
                     weight:
-                      0.7,
+                      0.5,
+
+                    opacity:
+                      0.45,
 
                     fillColor:
                       color,
 
-                    /*
-                     * GLO 1800s = 40% opacity
-                     */
-
                     fillOpacity:
-                      0.40
+                      0.65
 
                   };
 
@@ -3002,6 +3054,10 @@
                   );
 
 
+                  /* -----------------------------------------
+                     CLICK
+                     ----------------------------------------- */
+
                   layer.on(
 
                     "click",
@@ -3022,30 +3078,16 @@
                       }
 
 
-                      /*
-                       * Very subtle selected outline.
-                       */
-
-                      layer.setStyle({
-
-                        weight:
-                          1.1,
-
-                        color:
-                          "#777777",
-
-                        fillOpacity:
-                          0.45
-
-                      });
-
-
                       layer.openPopup();
 
                     }
 
                   );
 
+
+                  /* -----------------------------------------
+                     TOUCH
+                     ----------------------------------------- */
 
                   layer.on(
 
@@ -3060,9 +3102,10 @@
                   );
 
 
-                  /*
-                   * Very subtle hover effect.
-                   */
+                  /* -----------------------------------------
+                     MOUSEOVER
+                     Minimal perimeter only
+                     ----------------------------------------- */
 
                   layer.on(
 
@@ -3073,13 +3116,16 @@
                       e.target.setStyle({
 
                         weight:
-                          1.0,
+                          1,
 
                         color:
-                          "#777777",
+                          "#666666",
+
+                        opacity:
+                          0.7,
 
                         fillOpacity:
-                          0.44
+                          0.72
 
                       });
 
@@ -3087,6 +3133,10 @@
 
                   );
 
+
+                  /* -----------------------------------------
+                     MOUSEOUT
+                     ----------------------------------------- */
 
                   layer.on(
 
@@ -3109,6 +3159,10 @@
                   );
 
 
+                  /* -----------------------------------------
+                     POPUP OPEN
+                     ----------------------------------------- */
+
                   layer.on(
 
                     "popupopen",
@@ -3126,6 +3180,10 @@
                   );
 
 
+                  /* -----------------------------------------
+                     POPUP CLOSE
+                     ----------------------------------------- */
+
                   layer.on(
 
                     "popupclose",
@@ -3134,17 +3192,6 @@
 
                       popupIsOpen =
                         false;
-
-
-                      if (
-                        vegetationLayer
-                      ) {
-
-                        vegetationLayer.resetStyle(
-                          layer
-                        );
-
-                      }
 
                     }
 
@@ -3156,10 +3203,6 @@
 
           );
 
-
-        /*
-         * Put historical vegetation above ownership layers.
-         */
 
         vegetationLayer.addTo(
           map
@@ -3204,7 +3247,7 @@
 
 
     /* =====================================================
-       DNR TOGGLE
+       DNR PARCEL TOGGLE
        ===================================================== */
 
     function toggleDNR() {
@@ -3238,8 +3281,6 @@
         }
 
 
-        setStatus("");
-
         return;
 
       }
@@ -3250,15 +3291,6 @@
 
       button.classList.add(
         "active"
-      );
-
-
-      lastDNRCenter =
-        null;
-
-
-      setStatus(
-        "Loading DNR parcels..."
       );
 
 
@@ -3273,18 +3305,11 @@
 
     async function loadDNR() {
 
-      if (!dnrVisible) {
-
-        return;
-
-      }
-
-
-      if (map.getZoom() < 10) {
+      if (map.getZoom() < 9) {
 
         setStatus(
 
-          "Zoom in closer to load DNR parcels."
+          "Zoom in closer to display DNR parcels."
 
         );
 
@@ -3297,21 +3322,41 @@
         map.getCenter();
 
 
-      if (lastDNRCenter) {
+      if (
+        getHistoricalState(
+          center.lat,
+          center.lng
+        ) !== "Michigan"
+      ) {
 
-        const movedDistance =
+        setStatus(
+          "DNR parcel data is available within Michigan."
+        );
 
-          map.distance(
+        return;
 
-            lastDNRCenter,
-            center
+      }
 
-          );
 
+      if (dnrLastCenter) {
 
         if (
-          movedDistance < 500
+
+          map.distance(
+            dnrLastCenter,
+            center
+          ) < 500
+
         ) {
+
+          if (
+            dnrLayer &&
+            !map.hasLayer(dnrLayer)
+          ) {
+
+            dnrLayer.addTo(map);
+
+          }
 
           return;
 
@@ -3320,7 +3365,7 @@
       }
 
 
-      lastDNRCenter =
+      dnrLastCenter =
         center;
 
 
@@ -3374,7 +3419,7 @@
             "esriSpatialRelIntersects",
 
           outFields:
-            "OBJECTID,County,DivisionDepartment",
+            "*",
 
           returnGeometry:
             "true",
@@ -3429,25 +3474,25 @@
         }
 
 
-        if (dnrLayer) {
-
-          map.removeLayer(
-            dnrLayer
-          );
-
-        }
-
-
         if (
           !data.features ||
           data.features.length === 0
         ) {
 
           setStatus(
-            "No DNR parcels were returned at this scale."
+            "No DNR parcels were returned at this map extent."
           );
 
           return;
+
+        }
+
+
+        if (dnrLayer) {
+
+          map.removeLayer(
+            dnrLayer
+          );
 
         }
 
@@ -3460,58 +3505,35 @@
 
             {
 
-              style: {
+              style:
 
-                color:
-                  "#246b2e",
+                function() {
 
-                weight:
-                  0.8,
+                  return {
 
-                fillColor:
-                  "#42a84d",
+                    color:
+                      "#28752b",
 
-                fillOpacity:
-                  0.20
+                    weight:
+                      0.7,
 
-              },
+                    opacity:
+                      0.55,
+
+                    fillColor:
+                      "#4caf50",
+
+                    fillOpacity:
+                      0.20
+
+                  };
+
+                },
 
 
               onEachFeature:
 
-                function(
-                  feature,
-                  layer
-                ) {
-
-                  layer.bindPopup(
-
-                    "<strong>Michigan DNR Managed Land</strong>" +
-
-                    "<br><br>" +
-
-                    "County: " +
-
-                    (
-
-                      feature.properties.County ||
-                      "Unknown"
-
-                    ) +
-
-                    "<br>" +
-
-                    "Managing division: " +
-
-                    (
-
-                      feature.properties.DivisionDepartment ||
-                      "Unknown"
-
-                    )
-
-                  );
-
+                function(feature, layer) {
 
                   layer.on(
 
@@ -3532,23 +3554,13 @@
           );
 
 
-        /*
-         * Ownership layers go below historical vegetation.
-         */
+        if (dnrVisible) {
 
-        dnrLayer.addTo(
-          map
-        );
-
-
-        if (vegetationLayer) {
-
-          vegetationLayer.bringToFront();
+          dnrLayer.addTo(
+            map
+          );
 
         }
-
-
-        setStatus("");
 
       }
 
@@ -3556,7 +3568,7 @@
       catch(error) {
 
         console.error(
-          "DNR loading error:",
+          "DNR parcel loading error:",
           error
         );
 
@@ -3574,7 +3586,7 @@
 
 
     /* =====================================================
-       USFS TOGGLE
+       USFS PARCEL TOGGLE
        ===================================================== */
 
     function toggleUSFS() {
@@ -3608,8 +3620,6 @@
         }
 
 
-        setStatus("");
-
         return;
 
       }
@@ -3620,15 +3630,6 @@
 
       button.classList.add(
         "active"
-      );
-
-
-      lastUSFSCenter =
-        null;
-
-
-      setStatus(
-        "Loading USFS parcels..."
       );
 
 
@@ -3643,18 +3644,11 @@
 
     async function loadUSFS() {
 
-      if (!usfsVisible) {
-
-        return;
-
-      }
-
-
-      if (map.getZoom() < 8) {
+      if (map.getZoom() < 9) {
 
         setStatus(
 
-          "Zoom in closer to load USFS parcels."
+          "Zoom in closer to display USFS parcels."
 
         );
 
@@ -3667,21 +3661,41 @@
         map.getCenter();
 
 
-      if (lastUSFSCenter) {
+      if (
+        getHistoricalState(
+          center.lat,
+          center.lng
+        ) !== "Michigan"
+      ) {
 
-        const movedDistance =
+        setStatus(
+          "USFS parcel data is currently shown within Michigan."
+        );
 
-          map.distance(
+        return;
 
-            lastUSFSCenter,
-            center
+      }
 
-          );
 
+      if (usfsLastCenter) {
 
         if (
-          movedDistance < 1000
+
+          map.distance(
+            usfsLastCenter,
+            center
+          ) < 500
+
         ) {
+
+          if (
+            usfsLayer &&
+            !map.hasLayer(usfsLayer)
+          ) {
+
+            usfsLayer.addTo(map);
+
+          }
 
           return;
 
@@ -3690,7 +3704,7 @@
       }
 
 
-      lastUSFSCenter =
+      usfsLastCenter =
         center;
 
 
@@ -3729,7 +3743,7 @@
         new URLSearchParams({
 
           where:
-            "OWNERCLASSIFICATION = 'USDA FOREST SERVICE'",
+            "OWNERCLASSIFICATION='USDA FOREST SERVICE'",
 
           geometry:
             geometry,
@@ -3744,7 +3758,7 @@
             "esriSpatialRelIntersects",
 
           outFields:
-            "OBJECTID,OWNERCLASSIFICATION,REGION,FORESTNAME",
+            "OWNERCLASSIFICATION,FORESTNAME,REGION",
 
           returnGeometry:
             "true",
@@ -3799,25 +3813,25 @@
         }
 
 
-        if (usfsLayer) {
-
-          map.removeLayer(
-            usfsLayer
-          );
-
-        }
-
-
         if (
           !data.features ||
           data.features.length === 0
         ) {
 
           setStatus(
-            "No USFS parcels were returned in the current view."
+            "No USFS parcels were returned at this map extent."
           );
 
           return;
+
+        }
+
+
+        if (usfsLayer) {
+
+          map.removeLayer(
+            usfsLayer
+          );
 
         }
 
@@ -3830,48 +3844,35 @@
 
             {
 
-              style: {
+              style:
 
-                color:
-                  "#245a9b",
+                function() {
 
-                weight:
-                  0.8,
+                  return {
 
-                fillColor:
-                  "#4385c5",
+                    color:
+                      "#245b91",
 
-                fillOpacity:
-                  0.20
+                    weight:
+                      0.7,
 
-              },
+                    opacity:
+                      0.55,
+
+                    fillColor:
+                      "#3f8fd2",
+
+                    fillOpacity:
+                      0.20
+
+                  };
+
+                },
 
 
               onEachFeature:
 
-                function(
-                  feature,
-                  layer
-                ) {
-
-                  const forestName =
-
-                    feature.properties.FORESTNAME ||
-                    "National Forest System land";
-
-
-                  layer.bindPopup(
-
-                    "<strong>U.S. Forest Service Land</strong>" +
-
-                    "<br><br>" +
-
-                    "Forest: " +
-
-                    forestName
-
-                  );
-
+                function(feature, layer) {
 
                   layer.on(
 
@@ -3892,33 +3893,13 @@
           );
 
 
-        usfsLayer.addTo(
-          map
-        );
+        if (usfsVisible) {
 
-
-        if (vegetationLayer) {
-
-          vegetationLayer.bringToFront();
+          usfsLayer.addTo(
+            map
+          );
 
         }
-
-
-        if (dnrLayer) {
-
-          dnrLayer.bringToFront();
-
-        }
-
-
-        if (vegetationLayer) {
-
-          vegetationLayer.bringToFront();
-
-        }
-
-
-        setStatus("");
 
       }
 
@@ -3926,7 +3907,7 @@
       catch(error) {
 
         console.error(
-          "USFS loading error:",
+          "USFS parcel loading error:",
           error
         );
 
@@ -4568,7 +4549,7 @@
 
 
     /* =====================================================
-       MAP MOVE / VEGETATION + OWNERSHIP RELOAD
+       MAP MOVE / VEGETATION + PARCEL RELOAD
        ===================================================== */
 
     let reloadTimer =
@@ -4592,10 +4573,6 @@
 
             function() {
 
-              /*
-               * Historical vegetation
-               */
-
               if (
                 vegetationVisible &&
                 !popupIsOpen
@@ -4606,26 +4583,14 @@
               }
 
 
-              /*
-               * DNR parcels
-               */
-
-              if (
-                dnrVisible
-              ) {
+              if (dnrVisible) {
 
                 loadDNR();
 
               }
 
 
-              /*
-               * USFS parcels
-               */
-
-              if (
-                usfsVisible
-              ) {
+              if (usfsVisible) {
 
                 loadUSFS();
 
