@@ -48,55 +48,6 @@
 
 
     /* =====================================================
-       GLO CORNER MARKERS
-       ===================================================== */
-
-    /*
-     * The visible GLO corner symbol is deliberately small.
-     *
-     * The containing 44 x 44 px element is the actual
-     * clickable/touchable target and is centered exactly
-     * on the survey corner coordinate.
-     */
-
-    .glo-corner-hit {
-
-      width: 44px;
-      height: 44px;
-
-      display: flex;
-
-      align-items: center;
-      justify-content: center;
-
-      cursor: pointer;
-
-      pointer-events: auto;
-
-      box-sizing: border-box;
-
-    }
-
-
-    .glo-corner-dot {
-
-      width: 6px;
-      height: 6px;
-
-      border-radius: 50%;
-
-      background: #245f35;
-
-      border: 1px solid #174d2a;
-
-      box-sizing: border-box;
-
-      pointer-events: none;
-
-    }
-
-
-    /* =====================================================
        CONTROLS
        ===================================================== */
 
@@ -188,6 +139,11 @@
 
     }
 
+
+    /*
+     * Active buttons are identified by a highlighted
+     * border rather than changing their text to "ON".
+     */
 
     #gpsButton.active {
 
@@ -631,7 +587,13 @@
   <div id="controls">
 
 
+    <!-- ===================================================
+         ROW 1
+         GLO / GLO CORNERS / GOVERNMENT PARCELS
+         =================================================== -->
+
     <div class="control-row">
+
 
       <button
         id="vegetationButton"
@@ -662,10 +624,17 @@
 
       </button>
 
+
     </div>
 
 
+    <!-- ===================================================
+         ROW 2
+         GPS / WHAT WAS HERE
+         =================================================== -->
+
     <div class="control-row">
+
 
       <button
         id="gpsButton"
@@ -686,6 +655,7 @@
 
       </button>
 
+
     </div>
 
 
@@ -705,6 +675,8 @@
 
     </div>
 
+
+    <!-- CURRENT VEGETATION DISPLAY -->
 
     <div id="currentVegetation">
 
@@ -732,8 +704,16 @@
   </div>
 
 
+  <!-- =====================================================
+       MAP
+       ===================================================== -->
+
   <div id="map"></div>
 
+
+  <!-- =====================================================
+       LEAFLET
+       ===================================================== -->
 
   <script
     src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
@@ -762,34 +742,16 @@
       );
 
 
+    /*
+     * Move Leaflet zoom controls to the upper-right.
+     */
+
     L.control.zoom({
 
       position:
         "topright"
 
     }).addTo(map);
-
-
-    /* =====================================================
-       MAP PANES
-       ===================================================== */
-
-    /*
-     * GLO vegetation polygons use Leaflet's normal overlay
-     * pane (~400).
-     *
-     * GLO corners are deliberately placed in a separate pane
-     * above the polygon layer.
-     */
-
-    map.createPane(
-      "gloCornerPane"
-    );
-
-    map.getPane(
-      "gloCornerPane"
-    ).style.zIndex =
-      700;
 
 
     /* =====================================================
@@ -835,6 +797,12 @@
     const gpsCenterInterval = 500;
 
 
+    /*
+     * GPS following is temporarily suspended when the
+     * user interacts with a polygon or manually moves
+     * the map.
+     */
+
     let userInteractingWithMap = false;
 
     let popupInteractionTimer = null;
@@ -852,6 +820,12 @@
 
     let lastVegetationCenter = null;
 
+
+    /*
+     * Prevent vegetation from being reloaded when a
+     * popup's automatic panning causes a map move.
+     */
+
     let popupIsOpen = false;
 
 
@@ -867,41 +841,15 @@
 
 
     /*
-     * Individual loaded GLO corners are retained here.
+     * Each time a new corner request begins, this number
+     * increases. A completed request only gets to replace
+     * the displayed layer if it is still the newest request.
      *
-     * OBJECTID is used as the unique key so that corners
-     * loaded from overlapping buffered map extents are
-     * not duplicated.
+     * This prevents a slow/old ArcGIS response from
+     * overwriting a newer map position.
      */
 
-    const gloCornerFeatures = new Map();
-
-
-    /*
-     * Distance from the visible map extent used when querying
-     * corners.
-     *
-     * A buffered extent helps prevent corners at the edge of
-     * the screen from disappearing during movement.
-     */
-
-    const gloCornerQueryBufferMeters = 1500;
-
-
-    /*
-     * Maximum number of OBJECTIDs requested from the server
-     * in a single feature query.
-     */
-
-    const gloCornerBatchSize = 500;
-
-
-    /*
-     * Prevent multiple simultaneous corner requests while
-     * the map is moving.
-     */
-
-    let cornersLoading = false;
+    let cornersRequestNumber = 0;
 
 
     /* =====================================================
@@ -929,7 +877,7 @@
 
 
     /* =====================================================
-       SERVICES
+       MICHIGAN MNFI CIRCA-1800 SERVICE
        ===================================================== */
 
     const michiganURL =
@@ -937,20 +885,36 @@
       "https://gisp.mcgi.state.mi.us/arcgis/rest/services/EGLE/LandCoverType_1800/FeatureServer/0";
 
 
+    /* =====================================================
+       MICHIGAN DNR PARCEL SERVICE
+       ===================================================== */
+
     const dnrURL =
 
       "https://services3.arcgis.com/Jdnp1TjADvSDxMAX/arcgis/rest/services/DNRLOTSParcelsOPENDATA/FeatureServer/2";
 
+
+    /* =====================================================
+       US FOREST SERVICE BASIC OWNERSHIP SERVICE
+       ===================================================== */
 
     const usfsURL =
 
       "https://apps.fs.usda.gov/arcx/rest/services/EDW/EDW_BasicOwnership_01/MapServer/0";
 
 
+    /* =====================================================
+       GLO / PUBLIC LAND SURVEY CORNERS
+       ===================================================== */
+
     const cornersURL =
 
       "https://gisagocss.state.mi.us/arcgis/rest/services/OpenData/Public_Land_Survey_Corners_and_Remonumentations/MapServer/0";
 
+
+    /* =====================================================
+       ORIGINAL GLO SURVEY PLAT MAPS
+       ===================================================== */
 
     const originalGLOSurveyMapsURL =
 
@@ -971,7 +935,7 @@
 
 
     /* =====================================================
-       PAUSE GPS CENTERING
+       PAUSE AUTOMATIC GPS CENTERING
        ===================================================== */
 
     function pauseGPSAutoCentering() {
@@ -1009,7 +973,7 @@
 
 
     /* =====================================================
-       GPS DETAILS
+       GPS DETAILS TOGGLE
        ===================================================== */
 
     function toggleGPSDetails() {
@@ -1052,6 +1016,10 @@
 
     }
 
+
+    /* =====================================================
+       DISPLAY GPS DETAILS
+       ===================================================== */
 
     function displayGPSDetails() {
 
@@ -1140,18 +1108,22 @@
 
 
     /* =====================================================
-       TENSION ZONE
+       FLORISTIC / CLIMATIC TENSION ZONE
        ===================================================== */
 
     function tensionZoneLatitude(longitude) {
 
-      const westLon = -86.0;
+      const westLon =
+        -86.0;
 
-      const eastLon = -82.0;
+      const eastLon =
+        -82.0;
 
-      const westLat = 43.55;
+      const westLat =
+        43.55;
 
-      const eastLat = 42.75;
+      const eastLat =
+        42.75;
 
 
       const fraction =
@@ -1209,7 +1181,7 @@
 
 
     /* =====================================================
-       MNFI COMMUNITY URLS
+       MNFI COMMUNITY PAGE LINKS
        ===================================================== */
 
     const mnfiCommunityURLs = {
@@ -1296,7 +1268,7 @@
 
 
     /* =====================================================
-       MNFI COMMUNITY LOGIC
+       DETERMINE MNFI COMMUNITY / COMMUNITIES
        ===================================================== */
 
     function getMNFICommunity(
@@ -2289,7 +2261,7 @@
 
 
     /* =====================================================
-       GPS
+       GPS TOGGLE
        ===================================================== */
 
     function toggleGPS() {
@@ -2308,6 +2280,10 @@
 
     }
 
+
+    /* =====================================================
+       START GPS
+       ===================================================== */
 
     function startGPS() {
 
@@ -2690,6 +2666,10 @@
     }
 
 
+    /* =====================================================
+       STOP GPS
+       ===================================================== */
+
     function stopGPS() {
 
       gpsEnabled =
@@ -2785,7 +2765,7 @@
 
 
     /* =====================================================
-       VEGETATION TOGGLE
+       GLO 1800s TOGGLE
        ===================================================== */
 
     function toggleVegetation() {
@@ -3453,689 +3433,6 @@
 
 
     /* =====================================================
-       CREATE GLO CORNER POPUP
-       ===================================================== */
-
-    function createGLOCornerPopup(
-      properties
-    ) {
-
-      const p =
-        properties || {};
-
-
-      const cornerCode =
-        p.Corner_Code ||
-        "Unknown";
-
-
-      const status =
-        p.Corner_Status ||
-        "Unknown";
-
-
-      const township =
-        p.Town ||
-        "Unknown";
-
-
-      const range =
-        p.Range ||
-        "Unknown";
-
-
-      const psID =
-        p.PS_ID ||
-        "Unknown";
-
-
-      let popup =
-
-        "<strong>GLO / Public Land Survey Corner</strong>" +
-
-        "<br><br>" +
-
-        "<strong>Corner:</strong> " +
-
-        cornerCode +
-
-        "<br>" +
-
-        "<strong>Status:</strong> " +
-
-        status +
-
-        "<br>" +
-
-        "<strong>Township:</strong> " +
-
-        township +
-
-        "<br>" +
-
-        "<strong>Range:</strong> " +
-
-        range +
-
-        "<br>" +
-
-        "<strong>PS ID:</strong> " +
-
-        psID;
-
-
-      const townshipText =
-
-        String(township)
-          .trim()
-          .toUpperCase();
-
-
-      const rangeText =
-
-        String(range)
-          .trim()
-          .toUpperCase();
-
-
-      const surveyLocationText =
-
-        townshipText +
-        " " +
-        rangeText;
-
-
-      popup +=
-
-        '<div class="historic-survey-section">' +
-
-          '<div class="historic-survey-title">' +
-
-            "Original GLO survey material" +
-
-          "</div>" +
-
-          '<div class="historic-survey-description">' +
-
-            "<strong>Original federal survey plat</strong>" +
-
-            "<br>" +
-
-            "Township / Range: " +
-
-            surveyLocationText +
-
-            "<br><br>" +
-
-            "The original GLO township plat for this " +
-
-            "township/range is part of the Archives " +
-
-            "of Michigan's digitized survey-map collection." +
-
-          "</div>" +
-
-          '<a class="historic-survey-link" ' +
-
-            'href="' +
-
-            originalGLOSurveyMapsURL +
-
-            '" ' +
-
-            'target="_blank" ' +
-
-            'rel="noopener noreferrer">' +
-
-            "View original GLO survey plat maps →" +
-
-          "</a>" +
-
-        "</div>";
-
-
-      if (
-        p.Recorded_Date
-      ) {
-
-        popup +=
-
-          "<br>" +
-
-          "<strong>Recorded:</strong> " +
-
-          formatArcGISDate(
-            p.Recorded_Date
-          );
-
-      }
-
-
-      if (
-        p.Researched_Date
-      ) {
-
-        popup +=
-
-          "<br>" +
-
-          "<strong>Survey research date:</strong> " +
-
-          p.Researched_Date;
-
-      }
-
-
-      if (
-        p.Observe_Date
-      ) {
-
-        popup +=
-
-          "<br>" +
-
-          "<strong>Observation date:</strong> " +
-
-          formatArcGISDate(
-            p.Observe_Date
-          );
-
-      }
-
-
-      return popup;
-
-    }
-
-
-    /* =====================================================
-       CREATE / REFRESH GLO CORNER LAYER
-       ===================================================== */
-
-    function rebuildGLOCornerLayer() {
-
-      if (cornersLayer) {
-
-        map.removeLayer(
-          cornersLayer
-        );
-
-      }
-
-
-      cornersLayer =
-        L.layerGroup();
-
-
-      gloCornerFeatures.forEach(
-
-        function(feature) {
-
-          const geometry =
-            feature.geometry;
-
-
-          if (
-            !geometry ||
-            !geometry.coordinates
-          ) {
-
-            return;
-
-          }
-
-
-          const lng =
-            geometry.coordinates[0];
-
-          const lat =
-            geometry.coordinates[1];
-
-
-          const properties =
-            feature.properties || {};
-
-
-          /*
-           * 44 x 44 px transparent clickable marker.
-           *
-           * iconAnchor [22,22] guarantees that the center of
-           * the invisible hit area is exactly the GLO point.
-           */
-
-          const icon =
-
-            L.divIcon({
-
-              className:
-                "",
-
-              html:
-
-                '<div class="glo-corner-hit">' +
-
-                  '<div class="glo-corner-dot"></div>' +
-
-                "</div>",
-
-              iconSize:
-                [44, 44],
-
-              iconAnchor:
-                [22, 22]
-
-            });
-
-
-          const marker =
-
-            L.marker(
-
-              [lat, lng],
-
-              {
-
-                icon:
-                  icon,
-
-                pane:
-                  "gloCornerPane",
-
-                keyboard:
-                  false,
-
-                riseOnHover:
-                  true,
-
-                bubblingMouseEvents:
-                  false
-
-              }
-
-            );
-
-
-          marker.bindPopup(
-
-            createGLOCornerPopup(
-              properties
-            ),
-
-            {
-
-              closeButton:
-                true,
-
-              autoPan:
-                true,
-
-              autoPanPadding:
-                [30, 30]
-
-            }
-
-          );
-
-
-          marker.on(
-
-            "click",
-
-            function(e) {
-
-              pauseGPSAutoCentering();
-
-
-              if (
-                e.originalEvent
-              ) {
-
-                L.DomEvent.stopPropagation(
-                  e.originalEvent
-                );
-
-              }
-
-            }
-
-          );
-
-
-          marker.on(
-
-            "popupopen",
-
-            function() {
-
-              pauseGPSAutoCentering();
-
-            }
-
-          );
-
-
-          cornersLayer.addLayer(
-            marker
-          );
-
-        }
-
-      );
-
-
-      if (cornersVisible) {
-
-        cornersLayer.addTo(
-          map
-        );
-
-      }
-
-    }
-
-
-    /* =====================================================
-       LOAD GLO CORNER OBJECT IDS
-       ===================================================== */
-
-    async function getGLOCornerObjectIDs() {
-
-      const bounds =
-        map.getBounds();
-
-
-      /*
-       * Expand the visible extent by a geographic buffer.
-       */
-
-      const center =
-        bounds.getCenter();
-
-
-      const north =
-        map.distance(
-
-          center,
-
-          [
-
-            bounds.getNorth(),
-
-            center.lng
-
-          ]
-
-        );
-
-
-      const east =
-        map.distance(
-
-          center,
-
-          [
-
-            center.lat,
-
-            bounds.getEast()
-
-          ]
-
-        );
-
-
-      const bufferNorth =
-        north +
-        gloCornerQueryBufferMeters;
-
-
-      const bufferEast =
-        east +
-        gloCornerQueryBufferMeters;
-
-
-      const bufferedBounds =
-        L.latLngBounds(
-
-          map.layerPointToLatLng(
-
-            map.latLngToLayerPoint(
-
-              [
-
-                bounds.getNorth(),
-
-                bounds.getWest()
-
-              ]
-
-            ).subtract(
-
-              [
-
-                bufferEast,
-                bufferNorth
-
-              ]
-
-            )
-
-          ),
-
-          map.layerPointToLatLng(
-
-            map.latLngToLayerPoint(
-
-              [
-
-                bounds.getSouth(),
-
-                bounds.getEast()
-
-              ]
-
-            ).add(
-
-              [
-
-                bufferEast,
-                bufferNorth
-
-              ]
-
-            )
-
-          )
-
-        );
-
-
-      const geometry =
-
-        JSON.stringify({
-
-          xmin:
-            bufferedBounds.getWest(),
-
-          ymin:
-            bufferedBounds.getSouth(),
-
-          xmax:
-            bufferedBounds.getEast(),
-
-          ymax:
-            bufferedBounds.getNorth(),
-
-          spatialReference: {
-
-            wkid:
-              4326
-
-          }
-
-        });
-
-
-      const params =
-
-        new URLSearchParams({
-
-          where:
-            "1=1",
-
-          geometry:
-            geometry,
-
-          geometryType:
-            "esriGeometryEnvelope",
-
-          inSR:
-            "4326",
-
-          spatialRel:
-            "esriSpatialRelIntersects",
-
-          returnIdsOnly:
-            "true",
-
-          returnGeometry:
-            "false",
-
-          f:
-            "json"
-
-        });
-
-
-      const response =
-
-        await fetch(
-
-          cornersURL +
-          "/query?" +
-          params.toString()
-
-        );
-
-
-      if (!response.ok) {
-
-        throw new Error(
-
-          "GLO corner ID query returned HTTP " +
-          response.status
-
-        );
-
-      }
-
-
-      const data =
-        await response.json();
-
-
-      if (data.error) {
-
-        throw new Error(
-
-          data.error.message ||
-          "GLO corner ID query returned an ArcGIS error."
-
-        );
-
-      }
-
-
-      return data.objectIds || [];
-
-    }
-
-
-    /* =====================================================
-       LOAD GLO CORNER FEATURES IN BATCHES
-       ===================================================== */
-
-    async function loadGLOCornerFeatureBatch(
-      objectIDs
-    ) {
-
-      if (
-        !objectIDs ||
-        objectIDs.length === 0
-      ) {
-
-        return [];
-
-      }
-
-
-      const params =
-
-        new URLSearchParams({
-
-          objectIds:
-            objectIDs.join(","),
-
-          outFields:
-            "OBJECTID,Corner_Code,Corner_Status,Range,Town,PS_ID,Recorded_Date,Latitude_N,Longitude_W,Researched_Date,Observe_Date",
-
-          returnGeometry:
-            "true",
-
-          outSR:
-            "4326",
-
-          f:
-            "geojson"
-
-        });
-
-
-      const response =
-
-        await fetch(
-
-          cornersURL +
-          "/query?" +
-          params.toString()
-
-        );
-
-
-      if (!response.ok) {
-
-        throw new Error(
-
-          "GLO corner feature query returned HTTP " +
-          response.status
-
-        );
-
-      }
-
-
-      const data =
-        await response.json();
-
-
-      if (data.error) {
-
-        throw new Error(
-
-          data.error.message ||
-          "GLO corner feature query returned an ArcGIS error."
-
-        );
-
-      }
-
-
-      return data.features || [];
-
-    }
-
-
-    /* =====================================================
        LOAD GLO CORNERS
        ===================================================== */
 
@@ -4177,42 +3474,257 @@
 
 
       /*
-       * Do not start another request while one is already
-       * processing.
+       * If the map has moved only a short distance since
+       * the previous successful load, keep the existing
+       * corner layer.
        */
 
-      if (cornersLoading) {
+      if (cornersLastCenter) {
 
-        return;
+        if (
+
+          map.distance(
+            cornersLastCenter,
+            center
+          ) < 500
+
+        ) {
+
+          if (
+            cornersLayer &&
+            !map.hasLayer(cornersLayer)
+          ) {
+
+            cornersLayer.addTo(map);
+
+          }
+
+          return;
+
+        }
 
       }
 
 
       /*
-       * At this point we intentionally do NOT use the old
-       * 500-meter "don't reload" rule.
+       * Create a unique request number.
        *
-       * The query is now based on the visible extent plus
-       * a buffer, and results are deduplicated.
+       * If the user moves the map again before this request
+       * finishes, a newer request will have a larger number
+       * and this request will no longer be allowed to replace
+       * the displayed layer.
        */
 
-      cornersLoading =
-        true;
+      const requestNumber =
+        ++cornersRequestNumber;
 
 
-      cornersLastCenter =
-        center;
+      const bounds =
+        map.getBounds();
+
+
+      const geometry =
+
+        JSON.stringify({
+
+          xmin:
+            bounds.getWest(),
+
+          ymin:
+            bounds.getSouth(),
+
+          xmax:
+            bounds.getEast(),
+
+          ymax:
+            bounds.getNorth(),
+
+          spatialReference: {
+
+            wkid:
+              4326
+
+          }
+
+        });
+
+
+      /*
+       * ===================================================
+       * PAGINATED CORNER QUERY
+       * ===================================================
+       *
+       * The Michigan service has a maximum record count
+       * of 2,000 but supports pagination.
+       *
+       * We therefore request the map extent in pages of
+       * 2,000 records until the server returns fewer than
+       * 2,000 records.
+       *
+       * OBJECTID ordering makes the pagination deterministic.
+       */
+
+      const pageSize =
+        2000;
+
+      let offset =
+        0;
+
+      let allFeatures =
+        [];
 
 
       try {
 
-        const objectIDs =
+        while (true) {
 
-          await getGLOCornerObjectIDs();
+          /*
+           * If a newer request has already started, abandon
+           * this request rather than allowing an older
+           * response to overwrite newer map data.
+           */
+
+          if (
+            requestNumber !==
+            cornersRequestNumber
+          ) {
+
+            return;
+
+          }
+
+
+          const params =
+
+            new URLSearchParams({
+
+              where:
+                "1=1",
+
+              geometry:
+                geometry,
+
+              geometryType:
+                "esriGeometryEnvelope",
+
+              inSR:
+                "4326",
+
+              spatialRel:
+                "esriSpatialRelIntersects",
+
+              outFields:
+                "OBJECTID,Corner_Code,Corner_Status,Range,Town,PS_ID,Recorded_Date,Latitude_N,Longitude_W,Researched_Date,Observe_Date",
+
+              returnGeometry:
+                "true",
+
+              outSR:
+                "4326",
+
+              resultOffset:
+                String(offset),
+
+              resultRecordCount:
+                String(pageSize),
+
+              orderByFields:
+                "OBJECTID ASC",
+
+              f:
+                "geojson"
+
+            });
+
+
+          const response =
+
+            await fetch(
+
+              cornersURL +
+              "/query?" +
+              params.toString()
+
+            );
+
+
+          if (!response.ok) {
+
+            throw new Error(
+
+              "GLO corner server returned HTTP " +
+              response.status
+
+            );
+
+          }
+
+
+          const data =
+            await response.json();
+
+
+          if (data.error) {
+
+            throw new Error(
+
+              data.error.message ||
+              "GLO corner ArcGIS returned an error."
+
+            );
+
+          }
+
+
+          const pageFeatures =
+
+            data.features || [];
+
+
+          allFeatures =
+            allFeatures.concat(
+              pageFeatures
+            );
+
+
+          /*
+           * Fewer than the page size means this was the
+           * final page.
+           */
+
+          if (
+            pageFeatures.length <
+            pageSize
+          ) {
+
+            break;
+
+          }
+
+
+          offset +=
+            pageFeatures.length;
+
+        }
+
+
+        /*
+         * Make sure the request is still the newest one
+         * before touching the displayed layer.
+         */
+
+        if (
+          requestNumber !==
+          cornersRequestNumber
+        ) {
+
+          return;
+
+        }
 
 
         if (
-          objectIDs.length === 0
+          allFeatures.length === 0
         ) {
 
           setStatus(
@@ -4227,76 +3739,371 @@
 
 
         /*
-         * Break potentially large ID lists into manageable
-         * requests so the service's maximum-record limit does
-         * not silently omit corners.
+         * Construct one GeoJSON object from all pages.
          */
 
-        for (
+        const data = {
 
-          let i = 0;
+          type:
+            "FeatureCollection",
 
-          i < objectIDs.length;
+          features:
+            allFeatures
 
-          i += gloCornerBatchSize
-
-        ) {
-
-          const batchIDs =
-
-            objectIDs.slice(
-
-              i,
-
-              i +
-              gloCornerBatchSize
-
-            );
+        };
 
 
-          const features =
+        /*
+         * Only now do we update cornersLastCenter.
+         *
+         * This is important: a failed or abandoned request
+         * must NOT be remembered as a successfully loaded
+         * location.
+         */
 
-            await loadGLOCornerFeatureBatch(
-              batchIDs
-            );
+        cornersLastCenter =
+          center;
 
 
-          features.forEach(
+        if (cornersLayer) {
 
-            function(feature) {
+          map.removeLayer(
+            cornersLayer
+          );
 
-              if (
-                feature.properties &&
-                feature.properties.OBJECTID !== undefined
-              ) {
+        }
 
-                gloCornerFeatures.set(
 
-                  String(
-                    feature.properties.OBJECTID
-                  ),
+        cornersLayer =
 
-                  feature
+          L.geoJSON(
 
-                );
+            data,
 
-              }
+            {
+
+              pointToLayer:
+
+                function(
+                  feature,
+                  latlng
+                ) {
+
+                  /*
+                   * Keep the original small corner symbol.
+                   */
+
+                  return L.circleMarker(
+
+                    latlng,
+
+                    {
+
+                      radius:
+                        3,
+
+                      color:
+                        "#174d2a",
+
+                      weight:
+                        1,
+
+                      fillColor:
+                        "#245f35",
+
+                      fillOpacity:
+                        0.9
+
+                    }
+
+                  );
+
+                },
+
+
+              onEachFeature:
+
+                function(
+                  feature,
+                  layer
+                ) {
+
+                  const p =
+                    feature.properties ||
+                    {};
+
+
+                  const cornerCode =
+                    p.Corner_Code ||
+                    "Unknown";
+
+
+                  const status =
+                    p.Corner_Status ||
+                    "Unknown";
+
+
+                  const township =
+                    p.Town ||
+                    "Unknown";
+
+
+                  const range =
+                    p.Range ||
+                    "Unknown";
+
+
+                  const psID =
+                    p.PS_ID ||
+                    "Unknown";
+
+
+                  let popup =
+
+                    "<strong>GLO / Public Land Survey Corner</strong>" +
+
+                    "<br><br>" +
+
+                    "<strong>Corner:</strong> " +
+
+                    cornerCode +
+
+                    "<br>" +
+
+                    "<strong>Status:</strong> " +
+
+                    status +
+
+                    "<br>" +
+
+                    "<strong>Township:</strong> " +
+
+                    township +
+
+                    "<br>" +
+
+                    "<strong>Range:</strong> " +
+
+                    range +
+
+                    "<br>" +
+
+                    "<strong>PS ID:</strong> " +
+
+                    psID;
+
+
+                  /* =================================================
+                     STATEWIDE ORIGINAL GLO SURVEY MAP LINK
+                     ================================================= */
+
+                  const townshipText =
+
+                    String(township)
+                      .trim()
+                      .toUpperCase();
+
+
+                  const rangeText =
+
+                    String(range)
+                      .trim()
+                      .toUpperCase();
+
+
+                  const surveyLocationText =
+
+                    townshipText +
+                    " " +
+                    rangeText;
+
+
+                  popup +=
+
+                    '<div class="historic-survey-section">' +
+
+                      '<div class="historic-survey-title">' +
+
+                        "Original GLO survey material" +
+
+                      "</div>" +
+
+                      '<div class="historic-survey-description">' +
+
+                        "<strong>Original federal survey plat</strong>" +
+
+                        "<br>" +
+
+                        "Township / Range: " +
+
+                        surveyLocationText +
+
+                        "<br><br>" +
+
+                        "The original GLO township plat for this " +
+
+                        "township/range is part of the Archives " +
+
+                        "of Michigan's digitized survey-map collection." +
+
+                      "</div>" +
+
+                      '<a class="historic-survey-link" ' +
+
+                        'href="' +
+
+                        originalGLOSurveyMapsURL +
+
+                        '" ' +
+
+                        'target="_blank" ' +
+
+                        'rel="noopener noreferrer">' +
+
+                        "View original GLO survey plat maps →" +
+
+                      "</a>" +
+
+                    "</div>";
+
+
+                  if (
+                    p.Recorded_Date
+                  ) {
+
+                    popup +=
+
+                      "<br>" +
+
+                      "<strong>Recorded:</strong> " +
+
+                      formatArcGISDate(
+                        p.Recorded_Date
+                      );
+
+                  }
+
+
+                  if (
+                    p.Researched_Date
+                  ) {
+
+                    popup +=
+
+                      "<br>" +
+
+                      "<strong>Survey research date:</strong> " +
+
+                      p.Researched_Date;
+
+                  }
+
+
+                  if (
+                    p.Observe_Date
+                  ) {
+
+                    popup +=
+
+                      "<br>" +
+
+                      "<strong>Observation date:</strong> " +
+
+                      formatArcGISDate(
+                        p.Observe_Date
+                      );
+
+                  }
+
+
+                  layer.bindPopup(
+
+                    popup,
+
+                    {
+
+                      closeButton:
+                        true,
+
+                      autoPan:
+                        true,
+
+                      autoPanPadding:
+                        [30, 30]
+
+                    }
+
+                  );
+
+
+                  layer.on(
+
+                    "click",
+
+                    function(e) {
+
+                      pauseGPSAutoCentering();
+
+
+                      if (
+                        e.originalEvent
+                      ) {
+
+                        L.DomEvent.stopPropagation(
+                          e.originalEvent
+                        );
+
+                      }
+
+                    }
+
+                  );
+
+
+                  layer.on(
+
+                    "popupopen",
+
+                    function() {
+
+                      pauseGPSAutoCentering();
+
+                    }
+
+                  );
+
+                }
 
             }
 
+          );
+
+
+        if (cornersVisible) {
+
+          cornersLayer.addTo(
+            map
           );
 
         }
 
 
         /*
-         * Rebuild from the deduplicated feature collection.
+         * Keep the status display clean after a successful
+         * load unless GPS Details is currently being shown.
          */
 
-        rebuildGLOCornerLayer();
+        if (gpsDetailsVisible) {
 
+          displayGPSDetails();
 
-        setStatus("");
+        }
+
+        else {
+
+          setStatus("");
+
+        }
 
       }
 
@@ -4311,20 +4118,25 @@
         );
 
 
-        setStatus(
+        /*
+         * Notice that cornersLastCenter is NOT updated
+         * here. The next move/reload can therefore retry
+         * the failed query.
+         */
 
-          "GLO corner error:<br>" +
-          error.message
+        if (
+          requestNumber ===
+          cornersRequestNumber
+        ) {
 
-        );
+          setStatus(
 
-      }
+            "GLO corner error:<br>" +
+            error.message
 
+          );
 
-      finally {
-
-        cornersLoading =
-          false;
+        }
 
       }
 
@@ -4375,7 +4187,7 @@
 
 
     /* =====================================================
-       GOVERNMENT PARCELS
+       GOVERNMENT PARCEL TOGGLE
        ===================================================== */
 
     function toggleGovernmentParcels() {
@@ -4444,6 +4256,10 @@
 
     }
 
+
+    /* =====================================================
+       LOAD GOVERNMENT PARCELS
+       ===================================================== */
 
     async function loadGovernmentParcels() {
 
@@ -4524,6 +4340,10 @@
         center;
 
 
+      /*
+       * Load both datasets independently.
+       */
+
       await Promise.all([
 
         loadDNRLayer(),
@@ -4537,6 +4357,10 @@
 
     }
 
+
+    /* =====================================================
+       LOAD DNR LAYER
+       ===================================================== */
 
     async function loadDNRLayer() {
 
@@ -4762,6 +4586,10 @@
 
     }
 
+
+    /* =====================================================
+       LOAD USFS LAYER
+       ===================================================== */
 
     async function loadUSFSLayer() {
 
@@ -4989,7 +4817,7 @@
 
 
     /* =====================================================
-       WHAT WAS HERE?
+       WHAT WAS HERE? TOGGLE
        ===================================================== */
 
     function toggleCurrentVegetation() {
