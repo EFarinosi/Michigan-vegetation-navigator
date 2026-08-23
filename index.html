@@ -1976,26 +1976,84 @@
       }
 
 
+      /* =====================================================
+         SHRUB SWAMP / EMERGENT MARSH
+
+         NORTH OF TENSION ZONE:
+           1. Northern Shrub Thicket
+           2. Northern Wet Meadow
+           3. Emergent Marsh
+
+         SOUTH OF TENSION ZONE:
+           1. Southern Shrub-Carr
+           2. Southern Wet Meadow
+           3. Emergent Marsh
+
+         The order is intentional and reflects the desired
+         north/south MNFI possibilities for this broad
+         historical GLO cover type.
+         ===================================================== */
+
       if (
         type ===
         "SHRUB SWAMP/EMERGENT MARSH"
       ) {
 
+        if (south) {
+
+          return {
+
+            communities: [
+
+              {
+
+                name:
+                  "Southern Shrub-Carr",
+
+                url:
+                  mnfiCommunityURLs[
+                    "southern shrub-carr"
+                  ]
+
+              },
+
+              {
+
+                name:
+                  "Southern Wet Meadow",
+
+                url:
+                  mnfiCommunityURLs[
+                    "southern wet meadow"
+                  ]
+
+              },
+
+              {
+
+                name:
+                  "Emergent Marsh",
+
+                url:
+                  mnfiCommunityURLs[
+                    "emergent marsh"
+                  ]
+
+              }
+
+            ],
+
+            tensionSensitive:
+              true
+
+          };
+
+        }
+
+
         return {
 
           communities: [
-
-            {
-
-              name:
-                "Emergent Marsh",
-
-              url:
-                mnfiCommunityURLs[
-                  "emergent marsh"
-                ]
-
-            },
 
             {
 
@@ -2005,18 +2063,6 @@
               url:
                 mnfiCommunityURLs[
                   "northern shrub thicket"
-                ]
-
-            },
-
-            {
-
-              name:
-                "Southern Shrub-carr",
-
-              url:
-                mnfiCommunityURLs[
-                  "southern shrub-carr"
                 ]
 
             },
@@ -2036,11 +2082,11 @@
             {
 
               name:
-                "Southern Wet Meadow",
+                "Emergent Marsh",
 
               url:
                 mnfiCommunityURLs[
-                  "southern wet meadow"
+                  "emergent marsh"
                 ]
 
             }
@@ -2048,7 +2094,7 @@
           ],
 
           tensionSensitive:
-            false
+            true
 
         };
 
@@ -2240,7 +2286,7 @@
 
           '<div class="tension-note">' +
 
-          "Community selected as " +
+          "Community possibilities selected for " +
 
           "<strong>" +
 
@@ -3473,12 +3519,6 @@
       }
 
 
-      /*
-       * If the map has moved only a short distance since
-       * the previous successful load, keep the existing
-       * corner layer.
-       */
-
       if (cornersLastCenter) {
 
         if (
@@ -3505,15 +3545,6 @@
 
       }
 
-
-      /*
-       * Create a unique request number.
-       *
-       * If the user moves the map again before this request
-       * finishes, a newer request will have a larger number
-       * and this request will no longer be allowed to replace
-       * the displayed layer.
-       */
 
       const requestNumber =
         ++cornersRequestNumber;
@@ -3549,21 +3580,6 @@
         });
 
 
-      /*
-       * ===================================================
-       * PAGINATED CORNER QUERY
-       * ===================================================
-       *
-       * The Michigan service has a maximum record count
-       * of 2,000 but supports pagination.
-       *
-       * We therefore request the map extent in pages of
-       * 2,000 records until the server returns fewer than
-       * 2,000 records.
-       *
-       * OBJECTID ordering makes the pagination deterministic.
-       */
-
       const pageSize =
         2000;
 
@@ -3577,12 +3593,6 @@
       try {
 
         while (true) {
-
-          /*
-           * If a newer request has already started, abandon
-           * this request rather than allowing an older
-           * response to overwrite newer map data.
-           */
 
           if (
             requestNumber !==
@@ -3687,11 +3697,6 @@
             );
 
 
-          /*
-           * Fewer than the page size means this was the
-           * final page.
-           */
-
           if (
             pageFeatures.length <
             pageSize
@@ -3707,11 +3712,6 @@
 
         }
 
-
-        /*
-         * Make sure the request is still the newest one
-         * before touching the displayed layer.
-         */
 
         if (
           requestNumber !==
@@ -3738,10 +3738,6 @@
         }
 
 
-        /*
-         * Construct one GeoJSON object from all pages.
-         */
-
         const data = {
 
           type:
@@ -3752,14 +3748,6 @@
 
         };
 
-
-        /*
-         * Only now do we update cornersLastCenter.
-         *
-         * This is important: a failed or abandoned request
-         * must NOT be remembered as a successfully loaded
-         * location.
-         */
 
         cornersLastCenter =
           center;
@@ -3788,10 +3776,6 @@
                   feature,
                   latlng
                 ) {
-
-                  /*
-                   * Keep the original small corner symbol.
-                   */
 
                   return L.circleMarker(
 
@@ -3892,10 +3876,6 @@
 
                     psID;
 
-
-                  /* =================================================
-                     STATEWIDE ORIGINAL GLO SURVEY MAP LINK
-                     ================================================= */
 
                   const townshipText =
 
@@ -4088,11 +4068,6 @@
         }
 
 
-        /*
-         * Keep the status display clean after a successful
-         * load unless GPS Details is currently being shown.
-         */
-
         if (gpsDetailsVisible) {
 
           displayGPSDetails();
@@ -4117,12 +4092,6 @@
 
         );
 
-
-        /*
-         * Notice that cornersLastCenter is NOT updated
-         * here. The next move/reload can therefore retry
-         * the failed query.
-         */
 
         if (
           requestNumber ===
@@ -4339,10 +4308,6 @@
       governmentLastCenter =
         center;
 
-
-      /*
-       * Load both datasets independently.
-       */
 
       await Promise.all([
 
@@ -5228,6 +5193,39 @@
               }
 
             );
+
+          }
+
+
+          if (
+            community.tensionSensitive
+          ) {
+
+            details +=
+
+              '<div class="tension-note">' +
+
+              "Community possibilities selected for " +
+
+              "<strong>" +
+
+              (
+
+                isSouthOfTensionZone(
+                  latitude,
+                  longitude
+                )
+
+                  ? "south of"
+                  : "north of"
+
+              ) +
+
+              " the approximate floristic tension zone</strong> " +
+
+              "using the current straight-line approximation." +
+
+              "</div>";
 
           }
 
