@@ -798,14 +798,6 @@
        GLO / PUBLIC LAND SURVEY CORNERS
        ===================================================== */
 
-    /*
-     * Michigan LARA / DTMB Public Land Survey Corners
-     * and Remonumentations.
-     *
-     * This is a point dataset containing public land
-     * survey corners and re-monumented locations.
-     */
-
     const cornersURL =
 
       "https://gisagocss.state.mi.us/arcgis/rest/services/OpenData/Public_Land_Survey_Corners_and_Remonumentations/MapServer/0";
@@ -3328,11 +3320,6 @@
 
     async function loadCorners() {
 
-      /*
-       * At broad Michigan-wide extents, thousands of points
-       * can be returned. Require a moderately close zoom.
-       */
-
       if (map.getZoom() < 10) {
 
         setStatus(
@@ -3993,7 +3980,9 @@
 
 
       /*
-       * Load both datasets independently.
+       * Load both datasets independently,
+       * but display them under the single
+       * GOV Parcels toggle.
        */
 
       await Promise.all([
@@ -4153,10 +4142,22 @@
             {
 
               /*
-               * DNR ownership remains green.
+               * =================================================
+               * DNR VISUAL DISSOLVE
+               * =================================================
                *
-               * The relatively transparent fill is intentional:
-               * the underlying GLO polygons remain visible.
+               * The DNR dataset contains individual parcel
+               * polygons. We intentionally remove the polygon
+               * stroke so internal parcel boundaries disappear
+               * visually.
+               *
+               * The green fill remains, allowing DNR ownership
+               * to read as a continuous ownership area wherever
+               * adjacent DNR parcels touch.
+               *
+               * This is a VISUAL dissolve only. The underlying
+               * individual parcel features are still preserved
+               * and returned independently by the ArcGIS service.
                */
 
               style:
@@ -4169,10 +4170,10 @@
                       "#28752b",
 
                     weight:
-                      0.7,
+                      0,
 
                     opacity:
-                      0.55,
+                      0,
 
                     fillColor:
                       "#4caf50",
