@@ -118,7 +118,7 @@
 
       margin-bottom: 4px;
 
-      border: none;
+      border: 2px solid transparent;
 
       border-radius: 6px;
 
@@ -127,6 +127,8 @@
       color: white;
 
       line-height: 1.1;
+
+      box-sizing: border-box;
 
     }
 
@@ -138,9 +140,16 @@
     }
 
 
+    /*
+     * Active buttons are now identified by a highlighted
+     * border rather than changing their text to "ON".
+     */
+
     #gpsButton.active {
 
       background: #245c9c;
+
+      border-color: #0d315c;
 
     }
 
@@ -149,12 +158,16 @@
 
       background: #8b5a2b;
 
+      border-color: #4f3015;
+
     }
 
 
     #cornersButton.active {
 
       background: #245c9c;
+
+      border-color: #0d315c;
 
     }
 
@@ -163,12 +176,16 @@
 
       background: #438a3f;
 
+      border-color: #245b22;
+
     }
 
 
     #currentButton.active {
 
       background: #245c9c;
+
+      border-color: #0d315c;
 
     }
 
@@ -503,7 +520,7 @@
         onclick="toggleVegetation()"
       >
 
-        GLO 1800s OFF
+        GLO 1800s
 
       </button>
 
@@ -513,7 +530,7 @@
         onclick="toggleCorners()"
       >
 
-        GLO Corners OFF
+        GLO Corners
 
       </button>
 
@@ -523,7 +540,7 @@
         onclick="toggleGovernmentParcels()"
       >
 
-        GOV Parcels OFF
+        GOV Parcels
 
       </button>
 
@@ -544,7 +561,7 @@
         onclick="toggleGPS()"
       >
 
-        GPS OFF
+        GPS
 
       </button>
 
@@ -2191,7 +2208,7 @@
 
 
       gpsButton.innerHTML =
-        "GPS ON";
+        "GPS";
 
       gpsButton.classList.add(
         "active"
@@ -2577,7 +2594,7 @@
 
 
       gpsButton.innerHTML =
-        "GPS OFF";
+        "GPS";
 
       gpsButton.classList.remove(
         "active"
@@ -2665,7 +2682,7 @@
       if (!vegetationVisible) {
 
         button.innerHTML =
-          "GLO 1800s OFF";
+          "GLO 1800s";
 
         button.classList.remove(
           "active"
@@ -2700,7 +2717,7 @@
 
 
       button.innerHTML =
-        "GLO 1800s ON";
+        "GLO 1800s";
 
       button.classList.add(
         "active"
@@ -3271,7 +3288,7 @@
       if (!cornersVisible) {
 
         button.innerHTML =
-          "GLO Corners OFF";
+          "GLO Corners";
 
         button.classList.remove(
           "active"
@@ -3293,7 +3310,7 @@
 
 
       button.innerHTML =
-        "GLO Corners ON";
+        "GLO Corners";
 
       button.classList.add(
         "active"
@@ -3844,7 +3861,7 @@
       if (!governmentParcelsVisible) {
 
         button.innerHTML =
-          "GOV Parcels OFF";
+          "GOV Parcels";
 
         button.classList.remove(
           "active"
@@ -3875,7 +3892,7 @@
 
 
       button.innerHTML =
-        "GOV Parcels ON";
+        "GOV Parcels";
 
       button.classList.add(
         "active"
@@ -3980,9 +3997,7 @@
 
 
       /*
-       * Load both datasets independently,
-       * but display them under the single
-       * GOV Parcels toggle.
+       * Load both datasets independently.
        */
 
       await Promise.all([
@@ -4142,22 +4157,10 @@
             {
 
               /*
-               * =================================================
-               * DNR VISUAL DISSOLVE
-               * =================================================
+               * DNR ownership remains green.
                *
-               * The DNR dataset contains individual parcel
-               * polygons. We intentionally remove the polygon
-               * stroke so internal parcel boundaries disappear
-               * visually.
-               *
-               * The green fill remains, allowing DNR ownership
-               * to read as a continuous ownership area wherever
-               * adjacent DNR parcels touch.
-               *
-               * This is a VISUAL dissolve only. The underlying
-               * individual parcel features are still preserved
-               * and returned independently by the ArcGIS service.
+               * The relatively transparent fill is intentional:
+               * the underlying GLO polygons remain visible.
                */
 
               style:
@@ -4170,10 +4173,10 @@
                       "#28752b",
 
                     weight:
-                      0,
+                      0.7,
 
                     opacity:
-                      0,
+                      0.55,
 
                     fillColor:
                       "#4caf50",
