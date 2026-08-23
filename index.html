@@ -152,23 +152,23 @@
     }
 
 
-    #currentButton.active {
+    #cornersButton.active {
 
       background: #245c9c;
 
     }
 
 
-    #dnrButton.active {
+    #govButton.active {
 
       background: #438a3f;
 
     }
 
 
-    #usfsButton.active {
+    #currentButton.active {
 
-      background: #3269a8;
+      background: #245c9c;
 
     }
 
@@ -492,7 +492,48 @@
 
     <!-- ===================================================
          ROW 1
-         GPS / GLO / WHAT WAS HERE
+         GLO / GLO CORNERS / GOVERNMENT PARCELS
+         =================================================== -->
+
+    <div class="control-row">
+
+
+      <button
+        id="vegetationButton"
+        onclick="toggleVegetation()"
+      >
+
+        GLO 1800s OFF
+
+      </button>
+
+
+      <button
+        id="cornersButton"
+        onclick="toggleCorners()"
+      >
+
+        GLO Corners OFF
+
+      </button>
+
+
+      <button
+        id="govButton"
+        onclick="toggleGovernmentParcels()"
+      >
+
+        GOV Parcels OFF
+
+      </button>
+
+
+    </div>
+
+
+    <!-- ===================================================
+         ROW 2
+         GPS / WHAT WAS HERE
          =================================================== -->
 
     <div class="control-row">
@@ -509,52 +550,11 @@
 
 
       <button
-        id="vegetationButton"
-        onclick="toggleVegetation()"
-      >
-
-        GLO 1800s OFF
-
-      </button>
-
-
-      <button
         id="currentButton"
         onclick="toggleCurrentVegetation()"
       >
 
         What Was Here?
-
-      </button>
-
-
-    </div>
-
-
-    <!-- ===================================================
-         ROW 2
-         DNR / USFS
-         =================================================== -->
-
-    <div class="control-row">
-
-
-      <button
-        id="dnrButton"
-        onclick="toggleDNR()"
-      >
-
-        DNR Parcels OFF
-
-      </button>
-
-
-      <button
-        id="usfsButton"
-        onclick="toggleUSFS()"
-      >
-
-        USFS Parcels OFF
 
       </button>
 
@@ -733,21 +733,27 @@
 
 
     /* =====================================================
-       PARCEL VARIABLES
+       GLO CORNER VARIABLES
+       ===================================================== */
+
+    let cornersLayer = null;
+
+    let cornersVisible = false;
+
+    let cornersLastCenter = null;
+
+
+    /* =====================================================
+       GOVERNMENT PARCEL VARIABLES
        ===================================================== */
 
     let dnrLayer = null;
 
-    let dnrVisible = false;
-
-    let dnrLastCenter = null;
-
-
     let usfsLayer = null;
 
-    let usfsVisible = false;
+    let governmentParcelsVisible = false;
 
-    let usfsLastCenter = null;
+    let governmentLastCenter = null;
 
 
     /* =====================================================
@@ -786,6 +792,23 @@
     const usfsURL =
 
       "https://apps.fs.usda.gov/arcx/rest/services/EDW/EDW_BasicOwnership_01/MapServer/0";
+
+
+    /* =====================================================
+       GLO / PUBLIC LAND SURVEY CORNERS
+       ===================================================== */
+
+    /*
+     * Michigan LARA / DTMB Public Land Survey Corners
+     * and Remonumentations.
+     *
+     * This is a point dataset containing public land
+     * survey corners and re-monumented locations.
+     */
+
+    const cornersURL =
+
+      "https://gisagocss.state.mi.us/arcgis/rest/services/OpenData/Public_Land_Survey_Corners_and_Remonumentations/MapServer/0";
 
 
     /* =====================================================
@@ -2426,6 +2449,22 @@
 
                 }
 
+                if (
+                  cornersVisible
+                ) {
+
+                  loadCorners();
+
+                }
+
+                if (
+                  governmentParcelsVisible
+                ) {
+
+                  loadGovernmentParcels();
+
+                }
+
               }
 
               else if (
@@ -3054,10 +3093,6 @@
                   );
 
 
-                  /* -----------------------------------------
-                     CLICK
-                     ----------------------------------------- */
-
                   layer.on(
 
                     "click",
@@ -3085,10 +3120,6 @@
                   );
 
 
-                  /* -----------------------------------------
-                     TOUCH
-                     ----------------------------------------- */
-
                   layer.on(
 
                     "touchstart",
@@ -3101,11 +3132,6 @@
 
                   );
 
-
-                  /* -----------------------------------------
-                     MOUSEOVER
-                     Minimal perimeter only
-                     ----------------------------------------- */
 
                   layer.on(
 
@@ -3134,10 +3160,6 @@
                   );
 
 
-                  /* -----------------------------------------
-                     MOUSEOUT
-                     ----------------------------------------- */
-
                   layer.on(
 
                     "mouseout",
@@ -3159,10 +3181,6 @@
                   );
 
 
-                  /* -----------------------------------------
-                     POPUP OPEN
-                     ----------------------------------------- */
-
                   layer.on(
 
                     "popupopen",
@@ -3179,10 +3197,6 @@
 
                   );
 
-
-                  /* -----------------------------------------
-                     POPUP CLOSE
-                     ----------------------------------------- */
 
                   layer.on(
 
@@ -3247,35 +3261,35 @@
 
 
     /* =====================================================
-       DNR PARCEL TOGGLE
+       GLO CORNERS TOGGLE
        ===================================================== */
 
-    function toggleDNR() {
+    function toggleCorners() {
 
-      dnrVisible =
-        !dnrVisible;
+      cornersVisible =
+        !cornersVisible;
 
 
       const button =
         document.getElementById(
-          "dnrButton"
+          "cornersButton"
         );
 
 
-      if (!dnrVisible) {
+      if (!cornersVisible) {
 
         button.innerHTML =
-          "DNR Parcels OFF";
+          "GLO Corners OFF";
 
         button.classList.remove(
           "active"
         );
 
 
-        if (dnrLayer) {
+        if (cornersLayer) {
 
           map.removeLayer(
-            dnrLayer
+            cornersLayer
           );
 
         }
@@ -3287,29 +3301,43 @@
 
 
       button.innerHTML =
-        "DNR Parcels ON";
+        "GLO Corners ON";
 
       button.classList.add(
         "active"
       );
 
 
-      loadDNR();
+      setStatus(
+        "Loading GLO survey corners..."
+      );
+
+
+      cornersLastCenter =
+        null;
+
+
+      loadCorners();
 
     }
 
 
     /* =====================================================
-       LOAD DNR PARCELS
+       LOAD GLO CORNERS
        ===================================================== */
 
-    async function loadDNR() {
+    async function loadCorners() {
 
-      if (map.getZoom() < 9) {
+      /*
+       * At broad Michigan-wide extents, thousands of points
+       * can be returned. Require a moderately close zoom.
+       */
+
+      if (map.getZoom() < 10) {
 
         setStatus(
 
-          "Zoom in closer to display DNR parcels."
+          "Zoom in closer to display GLO survey corners."
 
         );
 
@@ -3330,7 +3358,9 @@
       ) {
 
         setStatus(
-          "DNR parcel data is available within Michigan."
+
+          "GLO survey-corner data is available within Michigan."
+
         );
 
         return;
@@ -3338,12 +3368,594 @@
       }
 
 
-      if (dnrLastCenter) {
+      if (cornersLastCenter) {
 
         if (
 
           map.distance(
-            dnrLastCenter,
+            cornersLastCenter,
+            center
+          ) < 500
+
+        ) {
+
+          if (
+            cornersLayer &&
+            !map.hasLayer(cornersLayer)
+          ) {
+
+            cornersLayer.addTo(map);
+
+          }
+
+          return;
+
+        }
+
+      }
+
+
+      cornersLastCenter =
+        center;
+
+
+      const bounds =
+        map.getBounds();
+
+
+      const geometry =
+
+        JSON.stringify({
+
+          xmin:
+            bounds.getWest(),
+
+          ymin:
+            bounds.getSouth(),
+
+          xmax:
+            bounds.getEast(),
+
+          ymax:
+            bounds.getNorth(),
+
+          spatialReference: {
+
+            wkid:
+              4326
+
+          }
+
+        });
+
+
+      const params =
+
+        new URLSearchParams({
+
+          where:
+            "1=1",
+
+          geometry:
+            geometry,
+
+          geometryType:
+            "esriGeometryEnvelope",
+
+          inSR:
+            "4326",
+
+          spatialRel:
+            "esriSpatialRelIntersects",
+
+          outFields:
+            "OBJECTID,Corner_Code,Corner_Status,Range,Town,PS_ID,Recorded_Date,Latitude_N,Longitude_W,Researched_Date,Observe_Date",
+
+          returnGeometry:
+            "true",
+
+          outSR:
+            "4326",
+
+          resultRecordCount:
+            "2000",
+
+          f:
+            "geojson"
+
+        });
+
+
+      try {
+
+        const response =
+
+          await fetch(
+
+            cornersURL +
+            "/query?" +
+            params.toString()
+
+          );
+
+
+        if (!response.ok) {
+
+          throw new Error(
+
+            "GLO corner server returned HTTP " +
+            response.status
+
+          );
+
+        }
+
+
+        const data =
+          await response.json();
+
+
+        if (data.error) {
+
+          throw new Error(
+
+            data.error.message ||
+            "GLO corner ArcGIS returned an error."
+
+          );
+
+        }
+
+
+        if (
+          !data.features ||
+          data.features.length === 0
+        ) {
+
+          setStatus(
+
+            "No GLO survey corners were returned at this map extent."
+
+          );
+
+          return;
+
+        }
+
+
+        if (cornersLayer) {
+
+          map.removeLayer(
+            cornersLayer
+          );
+
+        }
+
+
+        cornersLayer =
+
+          L.geoJSON(
+
+            data,
+
+            {
+
+              pointToLayer:
+
+                function(
+                  feature,
+                  latlng
+                ) {
+
+                  return L.circleMarker(
+
+                    latlng,
+
+                    {
+
+                      radius:
+                        3,
+
+                      color:
+                        "#174d2a",
+
+                      weight:
+                        1,
+
+                      fillColor:
+                        "#245f35",
+
+                      fillOpacity:
+                        0.9
+
+                    }
+
+                  );
+
+                },
+
+
+              onEachFeature:
+
+                function(
+                  feature,
+                  layer
+                ) {
+
+                  const p =
+                    feature.properties ||
+                    {};
+
+
+                  const cornerCode =
+                    p.Corner_Code ||
+                    "Unknown";
+
+
+                  const status =
+                    p.Corner_Status ||
+                    "Unknown";
+
+
+                  const township =
+                    p.Town ||
+                    "Unknown";
+
+
+                  const range =
+                    p.Range ||
+                    "Unknown";
+
+
+                  const psID =
+                    p.PS_ID ||
+                    "Unknown";
+
+
+                  let popup =
+
+                    "<strong>GLO / Public Land Survey Corner</strong>" +
+
+                    "<br><br>" +
+
+                    "<strong>Corner:</strong> " +
+
+                    cornerCode +
+
+                    "<br>" +
+
+                    "<strong>Status:</strong> " +
+
+                    status +
+
+                    "<br>" +
+
+                    "<strong>Township:</strong> " +
+
+                    township +
+
+                    "<br>" +
+
+                    "<strong>Range:</strong> " +
+
+                    range +
+
+                    "<br>" +
+
+                    "<strong>PS ID:</strong> " +
+
+                    psID;
+
+
+                  if (
+                    p.Recorded_Date
+                  ) {
+
+                    popup +=
+
+                      "<br>" +
+
+                      "<strong>Recorded:</strong> " +
+
+                      formatArcGISDate(
+                        p.Recorded_Date
+                      );
+
+                  }
+
+
+                  if (
+                    p.Researched_Date
+                  ) {
+
+                    popup +=
+
+                      "<br>" +
+
+                      "<strong>Survey research date:</strong> " +
+
+                      p.Researched_Date;
+
+                  }
+
+
+                  if (
+                    p.Observe_Date
+                  ) {
+
+                    popup +=
+
+                      "<br>" +
+
+                      "<strong>Observation date:</strong> " +
+
+                      formatArcGISDate(
+                        p.Observe_Date
+                      );
+
+                  }
+
+
+                  layer.bindPopup(
+
+                    popup,
+
+                    {
+
+                      closeButton:
+                        true,
+
+                      autoPan:
+                        true,
+
+                      autoPanPadding:
+                        [30, 30]
+
+                    }
+
+                  );
+
+
+                  layer.on(
+
+                    "click",
+
+                    function(e) {
+
+                      pauseGPSAutoCentering();
+
+
+                      if (
+                        e.originalEvent
+                      ) {
+
+                        L.DomEvent.stopPropagation(
+                          e.originalEvent
+                        );
+
+                      }
+
+                    }
+
+                  );
+
+
+                  layer.on(
+
+                    "popupopen",
+
+                    function() {
+
+                      pauseGPSAutoCentering();
+
+                    }
+
+                  );
+
+                }
+
+            }
+
+          );
+
+
+        if (cornersVisible) {
+
+          cornersLayer.addTo(
+            map
+          );
+
+        }
+
+
+        setStatus("");
+
+      }
+
+
+      catch(error) {
+
+        console.error(
+
+          "GLO corner loading error:",
+          error
+
+        );
+
+
+        setStatus(
+
+          "GLO corner error:<br>" +
+          error.message
+
+        );
+
+      }
+
+    }
+
+
+    /* =====================================================
+       FORMAT ARCGIS DATE
+       ===================================================== */
+
+    function formatArcGISDate(
+      value
+    ) {
+
+      if (!value) {
+
+        return "";
+
+      }
+
+
+      try {
+
+        const date =
+          new Date(value);
+
+
+        if (
+          isNaN(date.getTime())
+        ) {
+
+          return String(value);
+
+        }
+
+
+        return date.toLocaleDateString();
+
+      }
+
+      catch(error) {
+
+        return String(value);
+
+      }
+
+    }
+
+
+    /* =====================================================
+       GOVERNMENT PARCEL TOGGLE
+       ===================================================== */
+
+    function toggleGovernmentParcels() {
+
+      governmentParcelsVisible =
+        !governmentParcelsVisible;
+
+
+      const button =
+        document.getElementById(
+          "govButton"
+        );
+
+
+      if (!governmentParcelsVisible) {
+
+        button.innerHTML =
+          "GOV Parcels OFF";
+
+        button.classList.remove(
+          "active"
+        );
+
+
+        if (dnrLayer) {
+
+          map.removeLayer(
+            dnrLayer
+          );
+
+        }
+
+
+        if (usfsLayer) {
+
+          map.removeLayer(
+            usfsLayer
+          );
+
+        }
+
+
+        return;
+
+      }
+
+
+      button.innerHTML =
+        "GOV Parcels ON";
+
+      button.classList.add(
+        "active"
+      );
+
+
+      setStatus(
+        "Loading government parcels..."
+      );
+
+
+      governmentLastCenter =
+        null;
+
+
+      loadGovernmentParcels();
+
+    }
+
+
+    /* =====================================================
+       LOAD GOVERNMENT PARCELS
+       ===================================================== */
+
+    async function loadGovernmentParcels() {
+
+      if (map.getZoom() < 9) {
+
+        setStatus(
+
+          "Zoom in closer to display government parcels."
+
+        );
+
+        return;
+
+      }
+
+
+      const center =
+        map.getCenter();
+
+
+      if (
+        getHistoricalState(
+          center.lat,
+          center.lng
+        ) !== "Michigan"
+      ) {
+
+        setStatus(
+
+          "Government parcel data is currently shown within Michigan."
+
+        );
+
+        return;
+
+      }
+
+
+      if (governmentLastCenter) {
+
+        if (
+
+          map.distance(
+            governmentLastCenter,
             center
           ) < 500
 
@@ -3358,6 +3970,17 @@
 
           }
 
+
+          if (
+            usfsLayer &&
+            !map.hasLayer(usfsLayer)
+          ) {
+
+            usfsLayer.addTo(map);
+
+          }
+
+
           return;
 
         }
@@ -3365,9 +3988,33 @@
       }
 
 
-      dnrLastCenter =
+      governmentLastCenter =
         center;
 
+
+      /*
+       * Load both datasets independently.
+       */
+
+      await Promise.all([
+
+        loadDNRLayer(),
+
+        loadUSFSLayer()
+
+      ]);
+
+
+      setStatus("");
+
+    }
+
+
+    /* =====================================================
+       LOAD DNR LAYER
+       ===================================================== */
+
+    async function loadDNRLayer() {
 
       const bounds =
         map.getBounds();
@@ -3479,8 +4126,8 @@
           data.features.length === 0
         ) {
 
-          setStatus(
-            "No DNR parcels were returned at this map extent."
+          console.warn(
+            "No DNR parcels returned."
           );
 
           return;
@@ -3504,6 +4151,13 @@
             data,
 
             {
+
+              /*
+               * DNR ownership remains green.
+               *
+               * The relatively transparent fill is intentional:
+               * the underlying GLO polygons remain visible.
+               */
 
               style:
 
@@ -3533,7 +4187,10 @@
 
               onEachFeature:
 
-                function(feature, layer) {
+                function(
+                  feature,
+                  layer
+                ) {
 
                   layer.on(
 
@@ -3554,7 +4211,9 @@
           );
 
 
-        if (dnrVisible) {
+        if (
+          governmentParcelsVisible
+        ) {
 
           dnrLayer.addTo(
             map
@@ -3568,8 +4227,10 @@
       catch(error) {
 
         console.error(
+
           "DNR parcel loading error:",
           error
+
         );
 
 
@@ -3586,127 +4247,10 @@
 
 
     /* =====================================================
-       USFS PARCEL TOGGLE
+       LOAD USFS LAYER
        ===================================================== */
 
-    function toggleUSFS() {
-
-      usfsVisible =
-        !usfsVisible;
-
-
-      const button =
-        document.getElementById(
-          "usfsButton"
-        );
-
-
-      if (!usfsVisible) {
-
-        button.innerHTML =
-          "USFS Parcels OFF";
-
-        button.classList.remove(
-          "active"
-        );
-
-
-        if (usfsLayer) {
-
-          map.removeLayer(
-            usfsLayer
-          );
-
-        }
-
-
-        return;
-
-      }
-
-
-      button.innerHTML =
-        "USFS Parcels ON";
-
-      button.classList.add(
-        "active"
-      );
-
-
-      loadUSFS();
-
-    }
-
-
-    /* =====================================================
-       LOAD USFS PARCELS
-       ===================================================== */
-
-    async function loadUSFS() {
-
-      if (map.getZoom() < 9) {
-
-        setStatus(
-
-          "Zoom in closer to display USFS parcels."
-
-        );
-
-        return;
-
-      }
-
-
-      const center =
-        map.getCenter();
-
-
-      if (
-        getHistoricalState(
-          center.lat,
-          center.lng
-        ) !== "Michigan"
-      ) {
-
-        setStatus(
-          "USFS parcel data is currently shown within Michigan."
-        );
-
-        return;
-
-      }
-
-
-      if (usfsLastCenter) {
-
-        if (
-
-          map.distance(
-            usfsLastCenter,
-            center
-          ) < 500
-
-        ) {
-
-          if (
-            usfsLayer &&
-            !map.hasLayer(usfsLayer)
-          ) {
-
-            usfsLayer.addTo(map);
-
-          }
-
-          return;
-
-        }
-
-      }
-
-
-      usfsLastCenter =
-        center;
-
+    async function loadUSFSLayer() {
 
       const bounds =
         map.getBounds();
@@ -3818,8 +4362,8 @@
           data.features.length === 0
         ) {
 
-          setStatus(
-            "No USFS parcels were returned at this map extent."
+          console.warn(
+            "No USFS parcels returned."
           );
 
           return;
@@ -3843,6 +4387,10 @@
             data,
 
             {
+
+              /*
+               * USFS ownership remains blue.
+               */
 
               style:
 
@@ -3872,7 +4420,10 @@
 
               onEachFeature:
 
-                function(feature, layer) {
+                function(
+                  feature,
+                  layer
+                ) {
 
                   layer.on(
 
@@ -3893,7 +4444,9 @@
           );
 
 
-        if (usfsVisible) {
+        if (
+          governmentParcelsVisible
+        ) {
 
           usfsLayer.addTo(
             map
@@ -3907,8 +4460,10 @@
       catch(error) {
 
         console.error(
+
           "USFS parcel loading error:",
           error
+
         );
 
 
@@ -4549,7 +5104,7 @@
 
 
     /* =====================================================
-       MAP MOVE / VEGETATION + PARCEL RELOAD
+       MAP MOVE / LAYER RELOAD
        ===================================================== */
 
     let reloadTimer =
@@ -4583,16 +5138,20 @@
               }
 
 
-              if (dnrVisible) {
+              if (
+                cornersVisible
+              ) {
 
-                loadDNR();
+                loadCorners();
 
               }
 
 
-              if (usfsVisible) {
+              if (
+                governmentParcelsVisible
+              ) {
 
-                loadUSFS();
+                loadGovernmentParcels();
 
               }
 
