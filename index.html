@@ -901,26 +901,33 @@
 
 
     /* =====================================================
-       HISTORIC GLO SURVEY MAPS
+       ORIGINAL GLO SURVEY PLAT MAPS
        ===================================================== */
 
     /*
-     * Original survey map for T12N R12W / Brooks Township.
+     * STATEWIDE ARCHIVAL RESOURCE
      *
-     * The archival record identifies this as:
+     * The Archives of Michigan provides access to the
+     * original GLO survey plat maps that established
+     * Michigan's township-and-range system.
      *
-     * "12N 12W - Survey Map of Brooks Township,
-     *  Newaygo County, Page 1"
+     * We intentionally use the official statewide
+     * resource rather than hard-coding an individual
+     * Preservica record.
      *
-     * Township lines were measured in 1837.
-     * Subdivision lines were measured in 1838.
+     * The township/range identified by the GLO corner
+     * is displayed immediately above this link.
      *
-     * Archives of Michigan / Michigan Digital Archives
+     * This is designed as the first statewide version.
+     * A later version can potentially resolve each
+     * township/range directly to its individual scanned
+     * plat once a stable record-ID/query convention has
+     * been established.
      */
 
-    const brooksTownshipSurveyMapURL =
+    const originalGLOSurveyMapsURL =
 
-      "https://michigan.access.preservica.com/uncategorized/IO_7dcabf59-b0e8-40f8-8fe7-bc510527e133";
+      "https://www.michigan.gov/lara/bureau-list/bcc/sections/land-survey/surv-remon/survey-and-remonumentation";
 
 
     /* =====================================================
@@ -3754,18 +3761,23 @@
                     psID;
 
 
-                  /*
-                   * =================================================
-                   * HISTORIC BROOKS TOWNSHIP SURVEY MAP
-                   * =================================================
-                   *
-                   * Provide the original 1837/1838 Brooks Township
-                   * survey map when the corner belongs to T12N R12W.
-                   *
-                   * The GLO corner layer's township/range fields are
-                   * handled as text because their exact formatting
-                   * can vary between records.
-                   */
+                  /* =================================================
+                     STATEWIDE ORIGINAL GLO SURVEY MAP LINK
+                     =================================================
+                     
+                     The popup now works for ANY Michigan GLO corner.
+                     
+                     We display the township/range information supplied
+                     by the statewide GLO corner service and provide a
+                     link to the official Archives of Michigan resource
+                     for the original GLO survey plat maps.
+                     
+                     We deliberately do NOT construct an individual
+                     Preservica URL here because the stable record-ID
+                     convention for individual township plats has not
+                     yet been established.
+                  */
+
 
                   const townshipText =
 
@@ -3781,68 +3793,60 @@
                       .toUpperCase();
 
 
-                  const isBrooksTownship =
+                  const surveyLocationText =
 
-                    (
-
-                      townshipText.includes("12N") ||
-
-                      townshipText === "12"
-
-                    ) &&
-
-                    (
-
-                      rangeText.includes("12W") ||
-
-                      rangeText === "12"
-
-                    );
+                    townshipText +
+                    " " +
+                    rangeText;
 
 
-                  if (isBrooksTownship) {
+                  popup +=
 
-                    popup +=
+                    '<div class="historic-survey-section">' +
 
-                      '<div class="historic-survey-section">' +
+                      '<div class="historic-survey-title">' +
 
-                        '<div class="historic-survey-title">' +
+                        "Original GLO survey material" +
 
-                          "Historic survey material" +
+                      "</div>" +
 
-                        "</div>" +
+                      '<div class="historic-survey-description">' +
 
-                        '<div class="historic-survey-description">' +
+                        "<strong>Original federal survey plat</strong>" +
 
-                          "<strong>1837–1838 Original Brooks Township Survey Map</strong>" +
+                        "<br>" +
 
-                          "<br>" +
+                        "Township / Range: " +
 
-                          "Township lines were surveyed in 1837; " +
+                        surveyLocationText +
 
-                          "subdivision lines were surveyed in 1838." +
+                        "<br><br>" +
 
-                        "</div>" +
+                        "The original GLO township plat for this " +
 
-                        '<a class="historic-survey-link" ' +
+                        "township/range is part of the Archives " +
 
-                          'href="' +
+                        "of Michigan's digitized survey-map collection." +
 
-                          brooksTownshipSurveyMapURL +
+                      "</div>" +
 
-                          '" ' +
+                      '<a class="historic-survey-link" ' +
 
-                          'target="_blank" ' +
+                        'href="' +
 
-                          'rel="noopener noreferrer">' +
+                        originalGLOSurveyMapsURL +
 
-                          "View original survey map →" +
+                        '" ' +
 
-                        "</a>" +
+                        'target="_blank" ' +
 
-                      "</div>";
+                        'rel="noopener noreferrer">' +
 
-                  }
+                        "View original GLO survey plat maps →" +
+
+                      "</a>" +
+
+                    "</div>";
 
 
                   if (
@@ -4350,13 +4354,6 @@
 
             {
 
-              /*
-               * DNR ownership remains green.
-               *
-               * The relatively transparent fill is intentional:
-               * the underlying GLO polygons remain visible.
-               */
-
               style:
 
                 function() {
@@ -4585,10 +4582,6 @@
             data,
 
             {
-
-              /*
-               * USFS ownership remains blue.
-               */
 
               style:
 
